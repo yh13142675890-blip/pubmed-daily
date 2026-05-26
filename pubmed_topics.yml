@@ -1,0 +1,175 @@
+topics:
+  - name: "CM基础机制"
+    per_topic_count: 10
+    query: >
+      ("cerebral cavernous malformation"[Title/Abstract]
+      OR "cerebral cavernous malformations"[Title/Abstract]
+      OR "cavernous malformation"[Title/Abstract]
+      OR "cavernous malformations"[Title/Abstract])
+      AND
+      (KRIT1[Title/Abstract]
+      OR CCM1[Title/Abstract]
+      OR CCM2[Title/Abstract]
+      OR PDCD10[Title/Abstract]
+      OR CCM3[Title/Abstract]
+      OR endothelial[Title/Abstract]
+      OR endothelium[Title/Abstract]
+      OR "blood-brain barrier"[Title/Abstract]
+      OR KLF4[Title/Abstract]
+      OR MEKK3[Title/Abstract]
+      OR RhoA[Title/Abstract])
+
+  - name: "CM药物治疗"
+    per_topic_count: 10
+    query: >
+      ("cerebral cavernous malformation"[Title/Abstract]
+      OR "cerebral cavernous malformations"[Title/Abstract]
+      OR "cavernous malformation"[Title/Abstract]
+      OR "cavernous malformations"[Title/Abstract])
+      AND
+      (treatment[Title/Abstract]
+      OR therapy[Title/Abstract]
+      OR therapeutic[Title/Abstract]
+      OR drug[Title/Abstract]
+      OR propranolol[Title/Abstract]
+      OR rapamycin[Title/Abstract]
+      OR sirolimus[Title/Abstract]
+      OR everolimus[Title/Abstract]
+      OR atorvastatin[Title/Abstract]
+      OR fasudil[Title/Abstract]
+      OR aspirin[Title/Abstract]
+      OR REC-994[Title/Abstract]
+      OR "vitamin D"[Title/Abstract])
+
+  - name: "CM组学数据"
+    per_topic_count: 10
+    query: >
+      ("cerebral cavernous malformation"[Title/Abstract]
+      OR "cerebral cavernous malformations"[Title/Abstract]
+      OR "cavernous malformation"[Title/Abstract]
+      OR "cavernous malformations"[Title/Abstract]
+      OR CCM[Title/Abstract])
+      AND
+      ("single-cell"[Title/Abstract]
+      OR "single cell"[Title/Abstract]
+      OR scRNA-seq[Title/Abstract]
+      OR transcriptome[Title/Abstract]
+      OR transcriptomics[Title/Abstract]
+      OR RNA-seq[Title/Abstract]
+      OR sequencing[Title/Abstract]
+      OR proteomics[Title/Abstract]
+      OR metabolomics[Title/Abstract]
+      OR genomics[Title/Abstract]
+      OR epigenomics[Title/Abstract]
+      OR "spatial transcriptomics"[Title/Abstract]
+      OR "multi-omics"[Title/Abstract]
+      OR bioinformatics[Title/Abstract])
+
+  - name: "CM影像/QSM/出血风险"
+    per_topic_count: 10
+    query: >
+      ("cerebral cavernous malformation"[Title/Abstract]
+      OR "cerebral cavernous malformations"[Title/Abstract]
+      OR "cavernous malformation"[Title/Abstract]
+      OR "cavernous malformations"[Title/Abstract])
+      AND
+      (MRI[Title/Abstract]
+      OR "magnetic resonance imaging"[Title/Abstract]
+      OR QSM[Title/Abstract]
+      OR "quantitative susceptibility mapping"[Title/Abstract]
+      OR radiomics[Title/Abstract]
+      OR hemorrhage[Title/Abstract]
+      OR haemorrhage[Title/Abstract]
+      OR bleeding[Title/Abstract]
+      OR "risk prediction"[Title/Abstract]
+      OR "machine learning"[Title/Abstract])
+
+  - name: "静脉畸形基础与治疗"
+    per_topic_count: 10
+    query: >
+      ("venous malformation"[Title/Abstract]
+      OR "venous malformations"[Title/Abstract]
+      OR "vascular malformation"[Title/Abstract]
+      OR "vascular malformations"[Title/Abstract]
+      OR "slow-flow vascular malformation"[Title/Abstract]
+      OR "slow flow vascular malformation"[Title/Abstract])
+      AND
+      (TEK[Title/Abstract]
+      OR TIE2[Title/Abstract]
+      OR PIK3CA[Title/Abstract]
+      OR AKT[Title/Abstract]
+      OR mTOR[Title/Abstract]
+      OR sirolimus[Title/Abstract]
+      OR rapamycin[Title/Abstract]
+      OR everolimus[Title/Abstract]
+      OR alpelisib[Title/Abstract]
+      OR sclerotherapy[Title/Abstract]
+      OR embolization[Title/Abstract]
+      OR therapy[Title/Abstract])
+
+  - name: "血管畸形PI3K-AKT-mTOR通路"
+    per_topic_count: 10
+    query: >
+      ("vascular anomaly"[Title/Abstract]
+      OR "vascular anomalies"[Title/Abstract]
+      OR "vascular malformation"[Title/Abstract]
+      OR "vascular malformations"[Title/Abstract]
+      OR "venous malformation"[Title/Abstract]
+      OR "lymphatic malformation"[Title/Abstract]
+      OR "arteriovenous malformation"[Title/Abstract])
+      AND
+      (PI3K[Title/Abstract]
+      OR PIK3CA[Title/Abstract]
+      OR AKT[Title/Abstract]
+      OR mTOR[Title/Abstract]
+      OR rapamycin[Title/Abstract]
+      OR sirolimus[Title/Abstract]
+      OR everolimus[Title/Abstract]
+      OR alpelisib[Title/Abstract]
+      OR feedback[Title/Abstract]
+      OR resistance[Title/Abstract])
+
+  - name: "换血/血浆置换疗法"
+    per_topic_count: 10
+    query: >
+      ("therapeutic plasma exchange"[Title/Abstract]
+      OR "plasma exchange"[Title/Abstract]
+      OR plasmapheresis[Title/Abstract]
+      OR immunoadsorption[Title/Abstract]
+      OR "exchange transfusion"[Title/Abstract]
+      OR "red cell exchange"[Title/Abstract]
+      OR "blood exchange"[Title/Abstract])
+      AND
+      (therapy[Title/Abstract]
+      OR treatment[Title/Abstract]
+      OR autoimmune[Title/Abstract]
+      OR neurological[Title/Abstract]
+      OR inflammation[Title/Abstract]
+      OR antibody[Title/Abstract]
+      OR "immune-mediated"[Title/Abstract]
+      OR "clinical trial"[Title/Abstract]
+      OR review[Title/Abstract])
+
+  - name: "神经免疫/炎症治疗"
+    per_topic_count: 10
+    query: >
+      (neuroinflammation[Title/Abstract]
+      OR "neuro-inflammatory"[Title/Abstract]
+      OR macrophage[Title/Abstract]
+      OR microglia[Title/Abstract]
+      OR "T cell"[Title/Abstract]
+      OR cytokine[Title/Abstract]
+      OR interleukin[Title/Abstract]
+      OR "immune response"[Title/Abstract])
+      AND
+      (brain[Title/Abstract]
+      OR cerebral[Title/Abstract]
+      OR neurovascular[Title/Abstract]
+      OR vascular[Title/Abstract]
+      OR endothelial[Title/Abstract])
+      AND
+      (therapy[Title/Abstract]
+      OR treatment[Title/Abstract]
+      OR inhibitor[Title/Abstract]
+      OR immunosuppressive[Title/Abstract]
+      OR immunomodulatory[Title/Abstract])
