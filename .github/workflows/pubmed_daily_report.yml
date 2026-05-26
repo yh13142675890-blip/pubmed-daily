@@ -1,0 +1,67 @@
+name: PubMed Daily Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 07:30 Beijing time (UTC+8) == 23:30 UTC
+    # 08:30 Tokyo time (UTC+9) == 23:30 UTC
+    - cron: "30 23 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  pubmed-daily-report:
+    name: Execute PubMed Grouped Daily Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          echo "Installing Python dependencies..."
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          echo "Dependencies installed."
+
+      - name: Execute PubMed Daily Report
+        env:
+          NCBI_EMAIL: ${{ secrets.NCBI_EMAIL }}
+          NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          SMTP_TO: "1205288711@qq.com"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        run: |
+          echo "Starting PubMed grouped daily report..."
+          python pubmed_daily_report.py \
+            --query-config pubmed_topics.yml \
+            --days 3 \
+            --lookback-days 60 \
+            --per-topic-count 10 \
+            --max-results 500 \
+            --dedupe-file data/seen_pmids.json \
+            --summary-language zh \
+            --push smtp
+          echo "PubMed grouped daily report finished."
+
+      - name: Commit dedupe database
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data/seen_pmids.json
+          git diff --cached --quiet || git commit -m "Update PubMed seen PMID database"
+          git push
