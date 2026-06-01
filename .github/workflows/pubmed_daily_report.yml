@@ -28,10 +28,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          echo "Installing Python dependencies..."
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          echo "Dependencies installed."
 
       - name: Execute PubMed Daily Report
         env:
@@ -46,17 +44,18 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
         run: |
-          echo "Starting PubMed grouped daily report..."
           python pubmed_daily_report.py \
             --query-config pubmed_topics.yml \
             --days 3 \
-            --lookback-days 60 \
+            --lookback-days 180 \
+            --classic-lookback-days 3650 \
             --per-topic-count 10 \
-            --max-results 500 \
+            --max-results 800 \
             --dedupe-file data/seen_pmids.json \
             --summary-language zh \
+            --enable-fallback-fill true \
+            --ai-summarize-per-topic 0 \
             --push smtp
-          echo "PubMed grouped daily report finished."
 
       - name: Commit dedupe database
         run: |
