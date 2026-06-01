@@ -1,19 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-PubMed grouped daily report.
-
-功能：
-1. 从 pubmed_topics.yml 读取多个主题检索式；
-2. 每组检索 PubMed；
-3. 按 seen_pmids.json 去重，尽量保证每天不同；
-4. 每组最多推送 N 篇；
-5. 每篇文献生成中文总结；
-6. 通过 SMTP 发送邮件；
-7. 发送成功后更新 seen_pmids.json。
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -27,11 +14,12 @@ import ssl
 import sys
 import time
 import xml.etree.ElementTree as ET
+from collections import Counter, OrderedDict
 from dataclasses import dataclass
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import requests
 import yaml
@@ -39,6 +27,15 @@ import yaml
 
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+
+CLASSIC_FILTER = """
+("review"[Publication Type]
+OR "systematic review"[Publication Type]
+OR "meta-analysis"[Publication Type]
+OR "clinical trial"[Publication Type]
+OR "guideline"[Publication Type]
+OR "practice guideline"[Publication Type])
+"""
 
 
 @dataclass
@@ -52,28 +49,36 @@ class Article:
     doi: str
     url: str
     topic: str
+    source_type: str
+    source_note: str = ""
     summary: str = ""
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="PubMed grouped daily report")
+    parser = argparse.ArgumentParser(description="PubMed grouped daily report with fallback filling")
 
     parser.add_argument("--query-config", default="pubmed_topics.yml")
     parser.add_argument("--days", type=int, default=3)
-    parser.add_argument("--lookback-days", type=int, default=60)
+    parser.add_argument("--lookback-days", type=int, default=180)
+    parser.add_argument("--classic-lookback-days", type=int, default=3650)
     parser.add_argument("--per-topic-count", type=int, default=10)
-    parser.add_argument("--target-count", type=int, default=None)
-    parser.add_argument("--max-results", type=int, default=500)
+    parser.add_argument("--max-results", type=int, default=800)
     parser.add_argument("--dedupe-file", default="data/seen_pmids.json")
     parser.add_argument("--summary-language", default="zh", choices=["zh", "en"])
+    parser.add_argument("--enable-fallback-fill", default="true")
+    parser.add_argument("--ai-summarize-per-topic", type=int, default=0)
     parser.add_argument("--push", default="smtp", choices=["smtp", "none"])
 
     return parser.parse_args()
 
 
-def require_env(name: str, allow_empty: bool = False) -> str:
+def as_bool(value: Any) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def require_env(name: str) -> str:
     value = os.getenv(name, "")
-    if not allow_empty and not value:
+    if not value:
         raise RuntimeError(f"Missing required environment variable: {name}")
     return value
 
@@ -82,63 +87,51 @@ def today_utc() -> dt.date:
     return dt.datetime.utcnow().date()
 
 
-def date_range(days: int) -> tuple[str, str]:
+def date_range(days: int) -> Tuple[str, str]:
     end = today_utc()
     start = end - dt.timedelta(days=max(days - 1, 0))
     return start.strftime("%Y/%m/%d"), end.strftime("%Y/%m/%d")
 
 
-def load_topics(path: str) -> List[Dict[str, Any]]:
+def load_config(path: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"Topic config not found: {path}")
 
     with p.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+        data = yaml.safe_load(f) or {}
 
-    topics = data.get("topics", [])
+    topics = []
+    for item in data.get("topics", []):
+        name = str(item.get("name", "")).strip()
+        query = str(item.get("query", "")).strip()
+        count = int(item.get("per_topic_count", 10))
+        if name and query:
+            topics.append({"name": name, "query": query, "per_topic_count": count})
+
+    fallback_topics = []
+    for item in data.get("fallback_topics", []):
+        name = str(item.get("name", "")).strip()
+        query = str(item.get("query", "")).strip()
+        if name and query:
+            fallback_topics.append({"name": name, "query": query})
+
     if not topics:
-        raise ValueError("No topics found in pubmed_topics.yml")
-
-    cleaned = []
-    for topic in topics:
-        name = str(topic.get("name", "")).strip()
-        query = str(topic.get("query", "")).strip()
-        per_topic_count = int(topic.get("per_topic_count", 10))
-        if not name or not query:
-            continue
-        cleaned.append(
-            {
-                "name": name,
-                "query": query,
-                "per_topic_count": per_topic_count,
-            }
-        )
-
-    if not cleaned:
         raise ValueError("No valid topics found in pubmed_topics.yml")
 
-    return cleaned
+    return topics, fallback_topics
 
 
 def load_seen(path: str) -> Dict[str, Any]:
     p = Path(path)
     if not p.exists():
-        return {
-            "global_seen_pmids": [],
-            "by_topic": {},
-            "updated_at": None,
-        }
+        return {"global_seen_pmids": [], "by_topic": {}, "updated_at": None}
 
-    with p.open("r", encoding="utf-8") as f:
-        try:
+    try:
+        with p.open("r", encoding="utf-8") as f:
             data = json.load(f)
-        except json.JSONDecodeError:
-            return {
-                "global_seen_pmids": [],
-                "by_topic": {},
-                "updated_at": None,
-            }
+    except Exception:
+        data = {"global_seen_pmids": [], "by_topic": {}, "updated_at": None}
 
     data.setdefault("global_seen_pmids", [])
     data.setdefault("by_topic", {})
@@ -149,20 +142,16 @@ def load_seen(path: str) -> Dict[str, Any]:
 def save_seen(path: str, data: Dict[str, Any]) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
+
     data["updated_at"] = dt.datetime.utcnow().isoformat(timespec="seconds") + "Z"
 
-    # 限制文件无限增长。保留最近约 20000 个 PMID，足够长期去重。
-    global_seen = list(dict.fromkeys(data.get("global_seen_pmids", [])))
-    if len(global_seen) > 20000:
-        global_seen = global_seen[-20000:]
-    data["global_seen_pmids"] = global_seen
+    global_seen = list(OrderedDict.fromkeys(str(x) for x in data.get("global_seen_pmids", [])))
+    data["global_seen_pmids"] = global_seen[-50000:]
 
     by_topic = data.get("by_topic", {})
-    for topic_name, pmids in by_topic.items():
-        pmids = list(dict.fromkeys(pmids))
-        if len(pmids) > 5000:
-            pmids = pmids[-5000:]
-        by_topic[topic_name] = pmids
+    for topic, pmids in list(by_topic.items()):
+        cleaned = list(OrderedDict.fromkeys(str(x) for x in pmids))
+        by_topic[topic] = cleaned[-10000:]
     data["by_topic"] = by_topic
 
     with p.open("w", encoding="utf-8") as f:
@@ -170,8 +159,7 @@ def save_seen(path: str, data: Dict[str, Any]) -> None:
 
 
 def ncbi_common_params() -> Dict[str, str]:
-    params = {}
-
+    params: Dict[str, str] = {}
     email = os.getenv("NCBI_EMAIL", "")
     api_key = os.getenv("NCBI_API_KEY", "")
 
@@ -198,16 +186,13 @@ def esearch_pubmed(query: str, days: int, max_results: int) -> List[str]:
     }
     params.update(ncbi_common_params())
 
-    url = f"{EUTILS_BASE}/esearch.fcgi"
-    response = requests.get(url, params=params, timeout=40)
+    response = requests.get(f"{EUTILS_BASE}/esearch.fcgi", params=params, timeout=60)
     response.raise_for_status()
     data = response.json()
-
-    ids = data.get("esearchresult", {}).get("idlist", [])
-    return [str(x) for x in ids]
+    return [str(x) for x in data.get("esearchresult", {}).get("idlist", [])]
 
 
-def efetch_pubmed(pmids: Sequence[str], topic: str) -> List[Article]:
+def efetch_pubmed(pmids: Sequence[str], topic: str, source_type: str, source_note: str = "") -> List[Article]:
     if not pmids:
         return []
 
@@ -218,19 +203,19 @@ def efetch_pubmed(pmids: Sequence[str], topic: str) -> List[Article]:
     }
     params.update(ncbi_common_params())
 
-    url = f"{EUTILS_BASE}/efetch.fcgi"
-    response = requests.get(url, params=params, timeout=60)
+    response = requests.get(f"{EUTILS_BASE}/efetch.fcgi", params=params, timeout=80)
     response.raise_for_status()
 
     root = ET.fromstring(response.text)
     articles: List[Article] = []
 
-    for pubmed_article in root.findall(".//PubmedArticle"):
-        article = parse_pubmed_article(pubmed_article, topic)
+    for node in root.findall(".//PubmedArticle"):
+        article = parse_pubmed_article(node, topic=topic, source_type=source_type, source_note=source_note)
         if article:
             articles.append(article)
 
-    return articles
+    article_map = {a.pmid: a for a in articles}
+    return [article_map[pmid] for pmid in pmids if pmid in article_map]
 
 
 def get_text(elem: Optional[ET.Element]) -> str:
@@ -241,12 +226,18 @@ def get_text(elem: Optional[ET.Element]) -> str:
     return html.unescape(text)
 
 
-def parse_pubmed_article(pubmed_article: ET.Element, topic: str) -> Optional[Article]:
+def parse_pubmed_article(
+    pubmed_article: ET.Element,
+    topic: str,
+    source_type: str,
+    source_note: str = "",
+) -> Optional[Article]:
     pmid = get_text(pubmed_article.find(".//PMID"))
     if not pmid:
         return None
 
-    title = get_text(pubmed_article.find(".//ArticleTitle"))
+    title = get_text(pubmed_article.find(".//ArticleTitle")) or "[No title]"
+
     abstract_parts = []
     for abstract_text in pubmed_article.findall(".//Abstract/AbstractText"):
         label = abstract_text.attrib.get("Label", "").strip()
@@ -261,28 +252,24 @@ def parse_pubmed_article(pubmed_article: ET.Element, topic: str) -> Optional[Art
     if not journal:
         journal = get_text(pubmed_article.find(".//Journal/ISOAbbreviation"))
 
-    pub_date = parse_pub_date(pubmed_article)
-    authors = parse_authors(pubmed_article)
-    doi = parse_doi(pubmed_article)
-
     return Article(
         pmid=pmid,
-        title=title or "[No title]",
+        title=title,
         abstract=abstract,
-        authors=authors,
+        authors=parse_authors(pubmed_article),
         journal=journal or "[No journal]",
-        pub_date=pub_date,
-        doi=doi,
+        pub_date=parse_pub_date(pubmed_article),
+        doi=parse_doi(pubmed_article),
         url=f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
         topic=topic,
+        source_type=source_type,
+        source_note=source_note,
     )
 
 
 def parse_authors(pubmed_article: ET.Element, limit: int = 6) -> str:
-    author_elems = pubmed_article.findall(".//AuthorList/Author")
     names = []
-
-    for author in author_elems:
+    for author in pubmed_article.findall(".//AuthorList/Author"):
         collective = get_text(author.find("CollectiveName"))
         if collective:
             names.append(collective)
@@ -297,10 +284,7 @@ def parse_authors(pubmed_article: ET.Element, limit: int = 6) -> str:
 
     if not names:
         return ""
-
-    if len(names) > limit:
-        return ", ".join(names[:limit]) + ", et al."
-    return ", ".join(names)
+    return ", ".join(names[:limit]) + (", et al." if len(names) > limit else "")
 
 
 def parse_pub_date(pubmed_article: ET.Element) -> str:
@@ -314,9 +298,7 @@ def parse_pub_date(pubmed_article: ET.Element) -> str:
     medline = get_text(pub_date.find("MedlineDate"))
 
     parts = [x for x in [year, month, day] if x]
-    if parts:
-        return " ".join(parts)
-    return medline
+    return " ".join(parts) if parts else medline
 
 
 def parse_doi(pubmed_article: ET.Element) -> str:
@@ -336,58 +318,97 @@ def unique_keep_order(items: Iterable[str]) -> List[str]:
     return out
 
 
+def pick_new_pmids(
+    candidates: Sequence[str],
+    needed: int,
+    global_seen: Set[str],
+    session_seen: Set[str],
+    selected_seen: Set[str],
+) -> List[str]:
+    out = []
+    for pmid in candidates:
+        if pmid in global_seen or pmid in session_seen or pmid in selected_seen:
+            continue
+        out.append(pmid)
+        selected_seen.add(pmid)
+        if len(out) >= needed:
+            break
+    return out
+
+
+def classic_query(base_query: str) -> str:
+    return f"({base_query}) AND ({CLASSIC_FILTER})"
+
+
 def collect_articles_for_topic(
-    topic_name: str,
-    query: str,
-    per_topic_count: int,
+    topic: Dict[str, Any],
+    fallback_topics: List[Dict[str, Any]],
     args: argparse.Namespace,
     global_seen: Set[str],
     session_seen: Set[str],
 ) -> List[Article]:
-    print(f"\n[Topic] {topic_name}")
+    topic_name = topic["name"]
+    query = topic["query"]
+    target = int(topic.get("per_topic_count") or args.per_topic_count)
+    selected_seen: Set[str] = set()
+    articles: List[Article] = []
 
-    recent_pmids = esearch_pubmed(query, args.days, args.max_results)
-    print(f"  Recent candidates within {args.days} days: {len(recent_pmids)}")
+    def add_stage(stage_query: str, days: int, source_type: str, source_note: str = "") -> None:
+        nonlocal articles
+        if len(articles) >= target:
+            return
 
-    candidate_pmids = recent_pmids
+        need = target - len(articles)
+        print(f"[{topic_name}] {source_type}: searching {days} days, need {need}")
+        try:
+            pmids = esearch_pubmed(stage_query, days=days, max_results=args.max_results)
+        except Exception as exc:
+            print(f"[{topic_name}] {source_type} search failed: {exc}", file=sys.stderr)
+            return
 
-    if len(candidate_pmids) < per_topic_count * 3:
-        lookback_pmids = esearch_pubmed(query, args.lookback_days, args.max_results)
-        print(f"  Lookback candidates within {args.lookback_days} days: {len(lookback_pmids)}")
-        candidate_pmids = unique_keep_order(candidate_pmids + lookback_pmids)
+        picked = pick_new_pmids(pmids, need, global_seen, session_seen, selected_seen)
+        if not picked:
+            print(f"[{topic_name}] {source_type}: no new PMID")
+            return
 
-    candidate_pmids = [
-        pmid
-        for pmid in candidate_pmids
-        if pmid not in global_seen and pmid not in session_seen
-    ]
+        try:
+            fetched = efetch_pubmed(picked, topic=topic_name, source_type=source_type, source_note=source_note)
+        except Exception as exc:
+            print(f"[{topic_name}] {source_type} fetch failed: {exc}", file=sys.stderr)
+            return
 
-    print(f"  New candidates after dedupe: {len(candidate_pmids)}")
+        for article in fetched:
+            if article.pmid not in session_seen:
+                session_seen.add(article.pmid)
+                articles.append(article)
 
-    selected_pmids = candidate_pmids[:per_topic_count]
-    if not selected_pmids:
-        return []
+        print(f"[{topic_name}] {source_type}: added {len(fetched)}")
+        time.sleep(0.34)
 
-    articles = efetch_pubmed(selected_pmids, topic_name)
+    add_stage(query, args.days, "今日新文献")
+    add_stage(query, args.lookback_days, "近期补位")
+    add_stage(classic_query(query), args.classic_lookback_days, "经典补位")
 
-    # 保持 PMID 顺序
-    article_map = {a.pmid: a for a in articles}
-    ordered = [article_map[pmid] for pmid in selected_pmids if pmid in article_map]
+    if as_bool(args.enable_fallback_fill) and len(articles) < target:
+        for fallback in fallback_topics:
+            if len(articles) >= target:
+                break
+            add_stage(
+                fallback["query"],
+                args.classic_lookback_days,
+                "顶刊扩展",
+                source_note=fallback["name"],
+            )
 
-    for article in ordered:
-        session_seen.add(article.pmid)
-
-    time.sleep(0.34)
-    return ordered
+    return articles[:target]
 
 
-def summarize_article(article: Article, language: str = "zh") -> str:
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if api_key:
+def summarize_article(article: Article, use_ai: bool = False, language: str = "zh") -> str:
+    if use_ai and os.getenv("OPENAI_API_KEY", ""):
         try:
             return summarize_with_openai(article, language)
         except Exception as exc:
-            print(f"  OpenAI summary failed for PMID {article.pmid}: {exc}", file=sys.stderr)
+            print(f"OpenAI summary failed for PMID {article.pmid}: {exc}", file=sys.stderr)
 
     return fallback_summary(article, language)
 
@@ -398,13 +419,12 @@ def summarize_with_openai(article: Article, language: str = "zh") -> str:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     model = os.getenv("OPENAI_MODEL") or DEFAULT_OPENAI_MODEL
 
-    if language == "zh":
-        prompt = f"""
+    prompt = f"""
 请根据下面的 PubMed 文献信息生成中文科研简报总结。
 
 要求：
-1. 总字数控制在 120-180 字。
-2. 不要夸大，不要编造摘要中没有的信息。
+1. 不要编造摘要中没有的信息。
+2. 总字数控制在 120-180 字。
 3. 固定使用以下四项：
 - 研究目的：
 - 研究方法：
@@ -412,26 +432,14 @@ def summarize_with_openai(article: Article, language: str = "zh") -> str:
 - 对本课题的启发：
 
 主题分组：{article.topic}
+来源类型：{article.source_type}
 标题：{article.title}
 期刊：{article.journal}
 发表日期：{article.pub_date}
 摘要：
 {article.abstract[:4000]}
 """
-    else:
-        prompt = f"""
-Summarize this PubMed article in 120-180 words.
-Use four fields: Objective, Methods, Key findings, Relevance.
 
-Topic: {article.topic}
-Title: {article.title}
-Journal: {article.journal}
-Date: {article.pub_date}
-Abstract:
-{article.abstract[:4000]}
-"""
-
-    # 优先使用 Responses API；失败时自动回退到 Chat Completions。
     try:
         response = client.responses.create(
             model=model,
@@ -447,10 +455,7 @@ Abstract:
     response = client.chat.completions.create(
         model=model,
         messages=[
-            {
-                "role": "system",
-                "content": "You are a precise biomedical literature assistant. Do not fabricate information.",
-            },
+            {"role": "system", "content": "You are a precise biomedical literature assistant. Do not fabricate information."},
             {"role": "user", "content": prompt},
         ],
         temperature=0.2,
@@ -460,74 +465,72 @@ Abstract:
 
 def fallback_summary(article: Article, language: str = "zh") -> str:
     abstract = re.sub(r"\s+", " ", article.abstract or "").strip()
-    if not abstract:
-        abstract = "该文献未提供摘要，建议根据全文进一步判断研究设计、主要结果及其与当前课题的关系。"
 
-    short_abs = abstract[:450]
-    if language == "zh":
+    if not abstract:
         return (
-            f"- 研究目的：围绕“{article.title}”相关问题展开。\n"
-            f"- 研究方法：根据题名和摘要信息判断，研究主要基于文献所述实验、临床或数据分析方法。\n"
-            f"- 主要结果：{short_abs}\n"
-            f"- 对本课题的启发：可作为“{article.topic}”方向的候选参考文献，建议阅读全文确认模型、样本和结论强度。"
+            f"- 研究目的：该文献围绕“{article.title}”相关问题展开，属于“{article.topic}”方向的参考文献。\n"
+            f"- 研究方法：PubMed 未提供摘要，需阅读全文确认研究类型、样本来源和实验设计。\n"
+            f"- 主要结果：当前仅可根据题名、期刊和主题判断其潜在相关性，不能替代全文解读。\n"
+            f"- 对本课题的启发：可作为“{article.topic}”方向的候选文献，建议优先阅读全文判断是否纳入后续综述或课题设计。"
         )
 
+    first_sentences = split_sentences(abstract)
+    key_text = " ".join(first_sentences[:3])[:650]
+
+    method_hint = infer_method_hint(article.title + " " + abstract)
+    result_hint = key_text
+
     return (
-        f"- Objective: This article addresses the topic reflected in the title: {article.title}.\n"
-        f"- Methods: The detailed design should be confirmed from the full text.\n"
-        f"- Key findings: {short_abs}\n"
-        f"- Relevance: Potentially relevant to the topic group: {article.topic}."
+        f"- 研究目的：该研究聚焦于“{article.title}”所涉及的问题，和“{article.topic}”方向相关。\n"
+        f"- 研究方法：从摘要判断，研究可能采用{method_hint}；具体模型、样本量和分析流程需结合全文确认。\n"
+        f"- 主要结果：{result_hint}\n"
+        f"- 对本课题的启发：该文献可帮助补充“{article.topic}”方向的背景、机制或方法学依据，适合进一步阅读全文筛选。"
     )
 
 
-def summarize_topic_overview(topic_name: str, articles: List[Article]) -> str:
+def split_sentences(text: str) -> List[str]:
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return []
+    parts = re.split(r"(?<=[.!?。！？])\s+", text)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def infer_method_hint(text: str) -> str:
+    lower = text.lower()
+
+    if any(x in lower for x in ["single-cell", "single cell", "scrna", "rna-seq", "transcriptom", "proteom", "metabolom", "genom"]):
+        return "组学测序或生物信息学分析"
+    if any(x in lower for x in ["clinical trial", "randomized", "cohort", "case-control", "retrospective", "prospective"]):
+        return "临床研究或队列分析"
+    if any(x in lower for x in ["mouse", "mice", "murine", "rat", "animal model"]):
+        return "动物模型实验"
+    if any(x in lower for x in ["cell", "endothelial", "macrophage", "microglia", "in vitro"]):
+        return "细胞实验或体外机制研究"
+    if any(x in lower for x in ["mri", "qsm", "radiomics", "imaging", "machine learning"]):
+        return "影像学、机器学习或风险预测分析"
+    if any(x in lower for x in ["review", "meta-analysis", "systematic review", "guideline"]):
+        return "综述、系统评价或指南类文献"
+    return "实验、临床或文献分析方法"
+
+
+def topic_overview(topic_name: str, articles: List[Article]) -> str:
     if not articles:
-        return "本组今日未检索到未重复的新文献。"
+        return "本组今日未检索到未重复文献。"
 
-    titles = "；".join([a.title for a in articles[:10]])
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if api_key:
-        try:
-            from openai import OpenAI
+    counts = Counter(a.source_type for a in articles)
+    journals = [a.journal for a in articles if a.journal and a.journal != "[No journal]"]
+    common_journals = ", ".join([x for x, _ in Counter(journals).most_common(3)])
 
-            client = OpenAI(api_key=api_key)
-            model = os.getenv("OPENAI_MODEL") or DEFAULT_OPENAI_MODEL
-            prompt = f"""
-请对以下 PubMed 文献标题进行一个中文“本组今日概览”。
-要求：
-1. 80-120 字。
-2. 总结共同趋势、值得关注的研究方向。
-3. 不要编造标题之外的信息。
-
-主题：{topic_name}
-标题列表：
-{titles}
-"""
-            try:
-                response = client.responses.create(
-                    model=model,
-                    input=prompt,
-                    temperature=0.2,
-                )
-                text = getattr(response, "output_text", "")
-                if text:
-                    return text.strip()
-            except Exception:
-                pass
-
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": "You summarize biomedical literature trends accurately."},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.2,
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as exc:
-            print(f"  Topic overview failed for {topic_name}: {exc}", file=sys.stderr)
-
-    return f"本组今日共筛选到 {len(articles)} 篇未重复文献，主题集中于 {topic_name} 相关方向，建议优先阅读标题和摘要与当前课题最贴近的文章。"
+    return (
+        f"本组今日共推送 {len(articles)} 篇未重复文献。"
+        f"来源构成：今日新文献 {counts.get('今日新文献', 0)} 篇，"
+        f"近期补位 {counts.get('近期补位', 0)} 篇，"
+        f"经典补位 {counts.get('经典补位', 0)} 篇，"
+        f"顶刊扩展 {counts.get('顶刊扩展', 0)} 篇。"
+        f"{'主要来源期刊包括：' + common_journals + '。' if common_journals else ''}"
+        f"建议优先阅读【今日新文献】和【经典补位】中的综述、临床或机制研究。"
+    )
 
 
 def build_email_body(grouped: Dict[str, List[Article]]) -> str:
@@ -536,34 +539,39 @@ def build_email_body(grouped: Dict[str, List[Article]]) -> str:
 
     lines: List[str] = []
     lines.append(f"PubMed每日分组文献汇报 | {today}")
-    lines.append("=" * 60)
+    lines.append("=" * 72)
     lines.append("")
     lines.append(f"今日共推送未重复文献：{total} 篇")
-    lines.append("说明：系统已根据 seen_pmids.json 自动跳过历史已推送 PMID。")
+    lines.append("说明：系统会跳过 data/seen_pmids.json 中已经推送过的 PMID。")
+    lines.append("来源类型说明：【今日新文献】近3天；【近期补位】近180天；【经典补位】近10年综述/临床/指南；【顶刊扩展】Cell/Nature/Science 等方向扩展。")
     lines.append("")
 
-    chinese_nums = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
+    chinese_nums = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三", "十四", "十五"]
 
     for idx, (topic_name, articles) in enumerate(grouped.items(), start=1):
         num = chinese_nums[idx - 1] if idx <= len(chinese_nums) else str(idx)
         lines.append("")
         lines.append(f"{num}、{topic_name}")
-        lines.append("-" * 60)
+        lines.append("-" * 72)
 
         if not articles:
-            lines.append("本组今日未检索到未重复的新文献。")
+            lines.append("本组今日未检索到未重复文献。")
             continue
 
         if len(articles) < 10:
-            lines.append(f"本组今日未重复文献不足 10 篇，实际推送 {len(articles)} 篇。")
+            lines.append(f"本组今日可用未重复文献不足 10 篇，实际推送 {len(articles)} 篇。")
 
         lines.append("")
         lines.append("【本组今日概览】")
-        lines.append(summarize_topic_overview(topic_name, articles))
+        lines.append(topic_overview(topic_name, articles))
         lines.append("")
 
         for i, article in enumerate(articles, start=1):
-            lines.append(f"{i}. {article.title}")
+            source_label = f"【{article.source_type}】"
+            if article.source_note:
+                source_label += f"({article.source_note})"
+
+            lines.append(f"{i}. {source_label} {article.title}")
             lines.append(f"   PMID: {article.pmid}")
             if article.doi:
                 lines.append(f"   DOI: {article.doi}")
@@ -575,12 +583,13 @@ def build_email_body(grouped: Dict[str, List[Article]]) -> str:
             lines.append(f"   PubMed: {article.url}")
             lines.append("")
             lines.append("   中文总结：")
-            for summary_line in article.summary.splitlines():
+            summary = article.summary or fallback_summary(article, "zh")
+            for summary_line in summary.splitlines():
                 lines.append(f"   {summary_line}")
             lines.append("")
 
     lines.append("")
-    lines.append("=" * 60)
+    lines.append("=" * 72)
     lines.append("本邮件由 GitHub Actions + PubMed E-utilities 自动生成。")
     return "\n".join(lines)
 
@@ -605,11 +614,11 @@ def send_email(subject: str, body: str) -> None:
 
     if smtp_port == 465:
         context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context, timeout=60) as server:
+        with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context, timeout=80) as server:
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_from, recipients, msg.as_string())
     else:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=60) as server:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=80) as server:
             server.ehlo()
             server.starttls(context=ssl.create_default_context())
             server.ehlo()
@@ -619,25 +628,22 @@ def send_email(subject: str, body: str) -> None:
 
 def main() -> int:
     args = parse_args()
-
-    topics = load_topics(args.query_config)
+    topics, fallback_topics = load_config(args.query_config)
     seen_data = load_seen(args.dedupe_file)
 
     global_seen = set(str(x) for x in seen_data.get("global_seen_pmids", []))
     session_seen: Set[str] = set()
-
     grouped: Dict[str, List[Article]] = {}
+
+    print(f"Loaded {len(topics)} topics and {len(fallback_topics)} fallback topics.")
+    print(f"Already seen PMIDs: {len(global_seen)}")
 
     for topic in topics:
         topic_name = topic["name"]
-        query = topic["query"]
-        count = int(topic.get("per_topic_count") or args.per_topic_count or 10)
-
         try:
             articles = collect_articles_for_topic(
-                topic_name=topic_name,
-                query=query,
-                per_topic_count=count,
+                topic=topic,
+                fallback_topics=fallback_topics,
                 args=args,
                 global_seen=global_seen,
                 session_seen=session_seen,
@@ -646,11 +652,16 @@ def main() -> int:
             print(f"Failed to collect topic {topic_name}: {exc}", file=sys.stderr)
             articles = []
 
-        for article in articles:
-            print(f"  Summarizing PMID {article.pmid}: {article.title[:80]}")
-            article.summary = summarize_article(article, args.summary_language)
-            time.sleep(0.2)
+        ai_limit = max(0, int(args.ai_summarize_per_topic))
+        ai_used = 0
 
+        for idx, article in enumerate(articles):
+            use_ai = idx < ai_limit
+            if use_ai:
+                ai_used += 1
+            article.summary = summarize_article(article, use_ai=use_ai, language=args.summary_language)
+
+        print(f"[{topic_name}] final articles: {len(articles)}, AI summaries: {ai_used}")
         grouped[topic_name] = articles
 
     today = today_utc().strftime("%Y-%m-%d")
@@ -664,9 +675,9 @@ def main() -> int:
     else:
         print(body)
 
-    # 只有邮件发送成功后才更新去重库。
-    new_pmids = []
+    new_pmids: List[str] = []
     by_topic = seen_data.setdefault("by_topic", {})
+
     for topic_name, articles in grouped.items():
         by_topic.setdefault(topic_name, [])
         for article in articles:
@@ -674,7 +685,7 @@ def main() -> int:
             by_topic[topic_name].append(article.pmid)
 
     seen_data["global_seen_pmids"] = list(
-        dict.fromkeys(list(seen_data.get("global_seen_pmids", [])) + new_pmids)
+        OrderedDict.fromkeys(list(seen_data.get("global_seen_pmids", [])) + new_pmids)
     )
 
     save_seen(args.dedupe_file, seen_data)
