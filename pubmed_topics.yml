@@ -173,3 +173,111 @@ topics:
       OR inhibitor[Title/Abstract]
       OR immunosuppressive[Title/Abstract]
       OR immunomodulatory[Title/Abstract])
+
+  - name: "CM经典文献/综述补位"
+    per_topic_count: 10
+    query: >
+      ("cerebral cavernous malformation"[Title/Abstract]
+      OR "cerebral cavernous malformations"[Title/Abstract]
+      OR "cavernous malformation"[Title/Abstract]
+      OR "cavernous malformations"[Title/Abstract]
+      OR CCM[Title/Abstract])
+      AND
+      ("review"[Publication Type]
+      OR "systematic review"[Publication Type]
+      OR "meta-analysis"[Publication Type]
+      OR "clinical trial"[Publication Type]
+      OR "guideline"[Publication Type]
+      OR genetics[Title/Abstract]
+      OR pathogenesis[Title/Abstract]
+      OR mechanism[Title/Abstract]
+      OR therapy[Title/Abstract])
+
+  - name: "静脉畸形经典文献/综述补位"
+    per_topic_count: 10
+    query: >
+      ("venous malformation"[Title/Abstract]
+      OR "venous malformations"[Title/Abstract]
+      OR "vascular malformation"[Title/Abstract]
+      OR "vascular malformations"[Title/Abstract]
+      OR "vascular anomalies"[Title/Abstract])
+      AND
+      ("review"[Publication Type]
+      OR "systematic review"[Publication Type]
+      OR "meta-analysis"[Publication Type]
+      OR "clinical trial"[Publication Type]
+      OR "guideline"[Publication Type]
+      OR TEK[Title/Abstract]
+      OR TIE2[Title/Abstract]
+      OR PIK3CA[Title/Abstract]
+      OR sirolimus[Title/Abstract]
+      OR alpelisib[Title/Abstract]
+      OR sclerotherapy[Title/Abstract])
+
+fallback_topics:
+  - name: "Cell/Nature/Science生命科学顶刊"
+    query: >
+      ("Cell"[Journal]
+      OR "Nature"[Journal]
+      OR "Science"[Journal]
+      OR "Nature Medicine"[Journal]
+      OR "Nature Neuroscience"[Journal]
+      OR "Nature Communications"[Journal]
+      OR "Science Translational Medicine"[Journal]
+      OR "Cell Reports Medicine"[Journal])
+      AND
+      (vascular[Title/Abstract]
+      OR endothelial[Title/Abstract]
+      OR neurovascular[Title/Abstract]
+      OR brain[Title/Abstract]
+      OR inflammation[Title/Abstract]
+      OR immune[Title/Abstract]
+      OR macrophage[Title/Abstract]
+      OR microglia[Title/Abstract]
+      OR metabolism[Title/Abstract]
+      OR hypoxia[Title/Abstract]
+      OR mTOR[Title/Abstract]
+      OR PI3K[Title/Abstract])
+
+  - name: "神经血管/脑血管顶刊扩展"
+    query: >
+      ("Nature Medicine"[Journal]
+      OR "Nature Neuroscience"[Journal]
+      OR "Nature Communications"[Journal]
+      OR "Science Translational Medicine"[Journal]
+      OR "Cell"[Journal]
+      OR "Science"[Journal]
+      OR "Neuron"[Journal]
+      OR "The Lancet Neurology"[Journal]
+      OR "JAMA Neurology"[Journal])
+      AND
+      (brain[Title/Abstract]
+      OR cerebral[Title/Abstract]
+      OR neurovascular[Title/Abstract]
+      OR stroke[Title/Abstract]
+      OR hemorrhage[Title/Abstract]
+      OR haemorrhage[Title/Abstract]
+      OR "blood-brain barrier"[Title/Abstract]
+      OR endothelial[Title/Abstract]
+      OR vascular[Title/Abstract])
+
+  - name: "免疫炎症/代谢顶刊扩展"
+    query: >
+      ("Cell"[Journal]
+      OR "Nature"[Journal]
+      OR "Science"[Journal]
+      OR "Nature Medicine"[Journal]
+      OR "Immunity"[Journal]
+      OR "Cell Metabolism"[Journal]
+      OR "Nature Immunology"[Journal]
+      OR "Science Immunology"[Journal])
+      AND
+      (inflammation[Title/Abstract]
+      OR immune[Title/Abstract]
+      OR macrophage[Title/Abstract]
+      OR microglia[Title/Abstract]
+      OR "T cell"[Title/Abstract]
+      OR cytokine[Title/Abstract]
+      OR metabolism[Title/Abstract]
+      OR hypoxia[Title/Abstract]
+      OR mitochondrial[Title/Abstract])
