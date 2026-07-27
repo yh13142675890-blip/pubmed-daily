@@ -1,0 +1,57 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Compile Python sources
+        run: python -m py_compile priority_grading.py reporting.py pubmed_daily_report.py weekly_ccm_report.py
+
+      - name: Parse workflow and topic YAML
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          for path in [Path("pubmed_topics.yml"), *Path(".github/workflows").glob("*.yml")]:
+              with path.open(encoding="utf-8") as stream:
+                  yaml.safe_load(stream)
+              print(f"valid YAML: {path}")
+          PY
+
+      - name: Check whitespace errors
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            git diff --check "origin/$BASE_REF...HEAD"
+          else
+            git diff --check HEAD^..HEAD
+          fi

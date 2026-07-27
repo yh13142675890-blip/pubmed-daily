@@ -1,4 +1,5 @@
 import json
+import datetime as dt
 import tempfile
 import unittest
 from datetime import date
@@ -6,7 +7,15 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from pubmed_daily_report import Article, main, write_daily_reports
+from pubmed_daily_report import (
+    Article,
+    load_config,
+    load_seen,
+    main,
+    save_seen,
+    today_shanghai,
+    write_daily_reports,
+)
 
 
 def make_article(pmid: str, source_type: str, topic: str = "测试主题") -> Article:
@@ -32,7 +41,7 @@ class DailyReportTests(unittest.TestCase):
             "经典补位",
             topic="CM影像/QSM/出血风险",
         )
-        classic_qsm_article.title = "Magnetic susceptibility in CCM"
+        classic_qsm_article.title = "Magnetic susceptibility in cerebral cavernous malformations"
         grouped = {
             "测试主题": [
                 daily_article,
@@ -74,15 +83,22 @@ class DailyReportTests(unittest.TestCase):
             "pubmed_url",
             "topic",
             "source_type",
+            "source_note",
+            "special_interest",
+            "domain",
+            "domain_reason",
+            "translational_relevance",
+            "translational_reason",
             "priority",
             "priority_reason",
         }
         self.assertTrue(all(required_fields <= article.keys() for article in payload["articles"]))
         classic_record = next(article for article in payload["articles"] if article["pmid"] == "1003")
         self.assertEqual(classic_record["priority"], "S")
-        self.assertEqual(classic_record["priority_reason"], "S: CM/CCM + QSM")
+        self.assertEqual(classic_record["domain"], "CCM")
+        self.assertEqual(classic_record["translational_relevance"], "Direct")
         for pmid in ("1001", "1002", "1003", "1004"):
-            expected_title = "Magnetic susceptibility in CCM" if pmid == "1003" else f"Title {pmid}"
+            expected_title = "Magnetic susceptibility in cerebral cavernous malformations" if pmid == "1003" else f"Title {pmid}"
             self.assertIn(expected_title, markdown)
 
     def test_reports_are_created_when_there_are_no_daily_articles(self) -> None:
@@ -135,7 +151,7 @@ class DailyReportTests(unittest.TestCase):
                 patch("pubmed_daily_report.build_email_body", return_value="email body"),
                 patch("pubmed_daily_report.send_email") as send_email,
                 patch("pubmed_daily_report.save_seen") as save_seen,
-                patch("pubmed_daily_report.today_utc", return_value=date(2026, 7, 29)),
+                patch("pubmed_daily_report.today_shanghai", return_value=date(2026, 7, 29)),
             ):
                 result = main()
 
@@ -162,6 +178,165 @@ class DailyReportTests(unittest.TestCase):
             [article["source_type"] for article in payload["articles"]],
             ["今日新文献", "经典补位"],
         )
+
+    def test_same_day_runs_merge_without_overwriting_or_duplicate_pmids(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            write_daily_reports(
+                {"first": [make_article("A", "今日新文献"), make_article("B", "近期补位")]},
+                "2026-07-28",
+                reports_dir=temp_dir,
+            )
+            json_path, markdown_path = write_daily_reports(
+                {
+                    "second": [
+                        make_article("B", "近期补位"),
+                        make_article("C", "经典补位"),
+                        make_article("D", "顶刊扩展"),
+                    ]
+                },
+                "2026-07-28",
+                reports_dir=temp_dir,
+            )
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            markdown = markdown_path.read_text(encoding="utf-8")
+
+        self.assertEqual([article["pmid"] for article in payload["articles"]], ["A", "B", "C", "D"])
+        self.assertEqual(payload["count"], 4)
+        self.assertEqual(markdown.count("PMID: B"), 1)
+
+    def test_business_date_uses_shanghai_when_utc_is_previous_day(self) -> None:
+        real_datetime = dt.datetime
+
+        class FixedDateTime(dt.datetime):
+            @classmethod
+            def now(cls, tz=None):
+                instant = real_datetime(2026, 7, 27, 23, 30, tzinfo=dt.timezone.utc)
+                return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
+
+        with patch("pubmed_daily_report.dt.datetime", FixedDateTime):
+            report_date = today_shanghai()
+            with tempfile.TemporaryDirectory() as temp_dir:
+                json_path, _ = write_daily_reports(
+                    {"测试": []},
+                    report_date.isoformat(),
+                    reports_dir=temp_dir,
+                )
+            self.assertEqual(report_date, date(2026, 7, 28))
+            self.assertEqual(json_path.name, "2026-07-28.json")
+
+    def test_topic_classic_lookback_days_is_loaded(self) -> None:
+        config = """
+topics:
+  - name: QSM
+    query: qsm
+    classic_lookback_days: 9000
+fallback_topics: []
+"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "topics.yml"
+            path.write_text(config, encoding="utf-8")
+            topics, _ = load_config(str(path))
+        self.assertEqual(topics[0]["classic_lookback_days"], 9000)
+
+    def test_all_direct_ccm_queries_share_anatomically_limited_disease_terms(self) -> None:
+        config_path = Path(__file__).parents[1] / "pubmed_topics.yml"
+        topics, _ = load_config(str(config_path))
+        direct_topic_names = {
+            "CM基础机制",
+            "CM药物治疗",
+            "CM组学数据",
+            "CM影像/QSM/出血风险",
+            "CM经典文献/综述补位",
+        }
+        ccm_topics = [topic for topic in topics if topic["name"] in direct_topic_names]
+        disease_clauses = []
+
+        self.assertEqual({topic["name"] for topic in ccm_topics}, direct_topic_names)
+        for topic in ccm_topics:
+            with self.subTest(topic=topic["name"]):
+                query = topic["query"]
+                disease_clause, separator, _ = query.partition(") AND (")
+                self.assertEqual(separator, ") AND (")
+                disease_clauses.append(disease_clause)
+                self.assertIn('"spinal cord cavernous malformation"', query)
+                self.assertIn('"intramedullary cavernoma"', query)
+                self.assertIn('"cerebral cavernous angioma"', query)
+                self.assertIn('"spinal cord cavernous angioma"', query)
+                self.assertIn('"intramedullary cavernous angioma"', query)
+                self.assertNotIn("CCM[Title/Abstract]", query)
+                self.assertNotIn("CM[Title/Abstract]", query)
+                self.assertNotIn("OR cavernoma[Title/Abstract]", query)
+                self.assertNotIn("OR cavernomas[Title/Abstract]", query)
+                self.assertNotIn('OR "cavernous angioma"[Title/Abstract]', query)
+
+        self.assertEqual(len(set(disease_clauses)), 1)
+
+    def test_cm_basic_mechanism_query_matches_mechanism_whitelist(self) -> None:
+        config_path = Path(__file__).parents[1] / "pubmed_topics.yml"
+        topics, _ = load_config(str(config_path))
+        query = next(topic["query"] for topic in topics if topic["name"] == "CM基础机制")
+        disease_clause, separator, mechanism_clause = query.partition(") AND (")
+
+        self.assertEqual(separator, ") AND (")
+        self.assertIn('"cerebral cavernous malformation"', disease_clause)
+        required_terms = (
+            "PIK3CA",
+            "MAP3K3",
+            "mTOR",
+            "HIF1A",
+            "EPAS1",
+            "hypoxia",
+            "macrophage",
+            "microglia",
+            "ferroptosis",
+            "glycolysis",
+            "metabolism",
+        )
+        for term in required_terms:
+            with self.subTest(term=term):
+                self.assertIn(f"{term}[Title/Abstract]", mechanism_clause)
+
+        self.assertNotIn("CCM[Title/Abstract]", query)
+        self.assertNotIn("CM[Title/Abstract]", query)
+        self.assertNotIn("OR cavernoma[Title/Abstract]", disease_clause)
+        self.assertNotIn('OR "cavernous angioma"[Title/Abstract]', disease_clause)
+
+    def test_plasma_exchange_is_special_interest_and_not_repeated_in_low_section(self) -> None:
+        plasma = make_article("4001", "今日新文献", topic="换血/血浆置换疗法")
+        plasma.title = "Therapeutic plasma exchange for autoimmune disease"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            json_path, markdown_path = write_daily_reports(
+                {"换血/血浆置换疗法": [plasma]},
+                "2026-07-30",
+                reports_dir=temp_dir,
+            )
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            markdown = markdown_path.read_text(encoding="utf-8")
+
+        record = payload["articles"][0]
+        self.assertEqual(record["special_interest"], "Plasma exchange / blood exchange")
+        self.assertEqual(record["priority"], "A")
+        self.assertEqual(record["translational_relevance"], "Exploratory")
+        self.assertEqual(markdown.count(plasma.title), 1)
+        self.assertIn("## 4. 血浆置换 / 换血（1）", markdown)
+        self.assertIn("## 6. 低相关性 / 范围外记录（0）", markdown)
+
+    def test_screened_fallback_state_persists_separately_from_global_seen(self) -> None:
+        data = {
+            "global_seen_pmids": ["seen"],
+            "screened_out_fallback_pmids": ["screened", "screened"],
+            "by_topic": {},
+            "updated_at": None,
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "seen.json"
+            save_seen(str(path), data)
+            loaded = load_seen(str(path))
+
+        self.assertEqual(loaded["global_seen_pmids"], ["seen"])
+        self.assertEqual(loaded["screened_out_fallback_pmids"], ["screened"])
+        self.assertNotIn("screened", loaded["global_seen_pmids"])
 
 
 if __name__ == "__main__":

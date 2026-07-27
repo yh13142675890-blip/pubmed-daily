@@ -1,0 +1,92 @@
+[
+  {
+    "name": "corneal_confocal_ccm",
+    "title": "Corneal confocal microscopy (CCM) detects early nerve regeneration",
+    "abstract": "A clinical imaging study of the cornea.",
+    "topic": "CM经典文献/综述补位",
+    "domain": "Out-of-scope",
+    "relevance": "Low",
+    "priority": "C"
+  },
+  {
+    "name": "cirrhotic_cardiomyopathy_ccm",
+    "title": "Cirrhotic cardiomyopathy (CCM): a clinical update",
+    "abstract": "Cardiac dysfunction in chronic liver disease.",
+    "topic": "CM药物治疗",
+    "domain": "Out-of-scope",
+    "relevance": "Low",
+    "priority": "C"
+  },
+  {
+    "name": "heart_failure_trial_wrong_topic",
+    "title": "Randomized clinical trial in heart failure",
+    "abstract": "A placebo-controlled cardiovascular trial.",
+    "topic": "CM经典文献/综述补位",
+    "domain": "Out-of-scope",
+    "relevance": "Low",
+    "priority": "C"
+  },
+  {
+    "name": "immunohistochemistry_only",
+    "title": "A pediatric postcricoid lesion",
+    "abstract": "Diagnosis was established by immunohistochemistry.",
+    "topic": "神经免疫/炎症治疗",
+    "domain": "Out-of-scope",
+    "relevance": "Low",
+    "priority": "C"
+  },
+  {
+    "name": "colorectal_generic_pi3k_hif",
+    "title": "PI3K and HIF signaling in colorectal cancer progression",
+    "abstract": "Tumor metabolism and proliferation were examined.",
+    "topic": "静脉畸形基础与治疗",
+    "domain": "Out-of-scope",
+    "relevance": "Low",
+    "priority": "C"
+  },
+  {
+    "name": "venous_pik3ca_alpelisib",
+    "title": "Alpelisib for PIK3CA-associated venous malformations",
+    "abstract": "Targeted therapy reduced lesion burden.",
+    "topic": "静脉畸形基础与治疗",
+    "domain": "Venous malformation",
+    "relevance": "Strong",
+    "priority": "A"
+  },
+  {
+    "name": "brain_avm_somatic_mapk",
+    "title": "Somatic MAPK mutations in brain arteriovenous malformation",
+    "abstract": "Endothelial signaling was characterized.",
+    "topic": "脑AVM/动静脉畸形",
+    "domain": "Brain AVM / AVM",
+    "relevance": "Strong",
+    "priority": "A"
+  },
+  {
+    "name": "ccm_qsm",
+    "title": "Quantitative susceptibility mapping in cerebral cavernous malformations",
+    "abstract": "Longitudinal QSM quantified iron burden.",
+    "topic": "CM影像/QSM/出血风险",
+    "domain": "CCM",
+    "relevance": "Direct",
+    "priority": "S"
+  },
+  {
+    "name": "ccm_single_cell",
+    "title": "Single-cell atlas of cerebral cavernous malformations",
+    "abstract": "Endothelial populations were resolved by scRNA-seq.",
+    "topic": "CM组学数据",
+    "domain": "CCM",
+    "relevance": "Direct",
+    "priority": "A"
+  },
+  {
+    "name": "vascular_malformation_feedback",
+    "title": "mTOR feedback and inhibitor resistance in vascular malformation",
+    "abstract": "PI3K inhibitor resistance was driven by feedback signaling.",
+    "topic": "血管畸形PI3K-AKT-mTOR通路",
+    "domain": "Other vascular malformation",
+    "relevance": "Strong",
+    "priority": "A"
+  }
+]

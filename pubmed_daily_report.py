@@ -20,16 +20,19 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from zoneinfo import ZoneInfo
 
 import requests
 import yaml
 
-from priority_grading import grade_priority
+from priority_grading import classify_literature
+from reporting import build_structured_markdown
 
 
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 DAILY_NEW_SOURCE_TYPE = "今日新文献"
+SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 
 CLASSIC_FILTER = """
 ("review"[Publication Type]
@@ -87,12 +90,21 @@ def require_env(name: str) -> str:
     return value
 
 
+def now_shanghai() -> dt.datetime:
+    return dt.datetime.now(tz=SHANGHAI_TZ)
+
+
+def today_shanghai() -> dt.date:
+    return now_shanghai().date()
+
+
 def today_utc() -> dt.date:
-    return dt.datetime.utcnow().date()
+    """Backward-compatible alias; reporting business dates use Asia/Shanghai."""
+    return today_shanghai()
 
 
 def date_range(days: int) -> Tuple[str, str]:
-    end = today_utc()
+    end = today_shanghai()
     start = end - dt.timedelta(days=max(days - 1, 0))
     return start.strftime("%Y/%m/%d"), end.strftime("%Y/%m/%d")
 
@@ -111,7 +123,10 @@ def load_config(path: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         query = str(item.get("query", "")).strip()
         count = int(item.get("per_topic_count", 10))
         if name and query:
-            topics.append({"name": name, "query": query, "per_topic_count": count})
+            topic = {"name": name, "query": query, "per_topic_count": count}
+            if item.get("classic_lookback_days") is not None:
+                topic["classic_lookback_days"] = int(item["classic_lookback_days"])
+            topics.append(topic)
 
     fallback_topics = []
     for item in data.get("fallback_topics", []):
@@ -129,15 +144,26 @@ def load_config(path: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
 def load_seen(path: str) -> Dict[str, Any]:
     p = Path(path)
     if not p.exists():
-        return {"global_seen_pmids": [], "by_topic": {}, "updated_at": None}
+        return {
+            "global_seen_pmids": [],
+            "screened_out_fallback_pmids": [],
+            "by_topic": {},
+            "updated_at": None,
+        }
 
     try:
         with p.open("r", encoding="utf-8") as f:
             data = json.load(f)
     except Exception:
-        data = {"global_seen_pmids": [], "by_topic": {}, "updated_at": None}
+        data = {
+            "global_seen_pmids": [],
+            "screened_out_fallback_pmids": [],
+            "by_topic": {},
+            "updated_at": None,
+        }
 
     data.setdefault("global_seen_pmids", [])
+    data.setdefault("screened_out_fallback_pmids", [])
     data.setdefault("by_topic", {})
     data.setdefault("updated_at", None)
     return data
@@ -151,6 +177,11 @@ def save_seen(path: str, data: Dict[str, Any]) -> None:
 
     global_seen = list(OrderedDict.fromkeys(str(x) for x in data.get("global_seen_pmids", [])))
     data["global_seen_pmids"] = global_seen[-50000:]
+
+    screened_out = list(
+        OrderedDict.fromkeys(str(x) for x in data.get("screened_out_fallback_pmids", []))
+    )
+    data["screened_out_fallback_pmids"] = screened_out[-50000:]
 
     by_topic = data.get("by_topic", {})
     for topic, pmids in list(by_topic.items()):
@@ -351,6 +382,9 @@ def collect_articles_for_topic(
     global_seen: Set[str],
     session_seen: Set[str],
 ) -> List[Article]:
+    # Generic top-journal fallback is intentionally not used to fill a primary
+    # topic. It is collected once under the independent cross-domain topic below.
+    del fallback_topics
     topic_name = topic["name"]
     query = topic["query"]
     target = int(topic.get("per_topic_count") or args.per_topic_count)
@@ -391,20 +425,80 @@ def collect_articles_for_topic(
 
     add_stage(query, args.days, DAILY_NEW_SOURCE_TYPE)
     add_stage(query, args.lookback_days, "近期补位")
-    add_stage(classic_query(query), args.classic_lookback_days, "经典补位")
-
-    if as_bool(args.enable_fallback_fill) and len(articles) < target:
-        for fallback in fallback_topics:
-            if len(articles) >= target:
-                break
-            add_stage(
-                fallback["query"],
-                args.classic_lookback_days,
-                "顶刊扩展",
-                source_note=fallback["name"],
-            )
+    classic_days = int(topic.get("classic_lookback_days") or args.classic_lookback_days)
+    add_stage(classic_query(query), classic_days, "经典补位")
 
     return articles[:target]
+
+
+def collect_cross_domain_articles(
+    fallback_topics: Sequence[Dict[str, Any]],
+    args: argparse.Namespace,
+    global_seen: Set[str],
+    session_seen: Set[str],
+    screened_out_fallback_pmids: Optional[Set[str]] = None,
+) -> List[Article]:
+    """Collect a separate, mechanism-filtered top-journal inspiration group."""
+    if not as_bool(args.enable_fallback_fill):
+        return []
+
+    target = max(0, int(args.per_topic_count))
+    articles: List[Article] = []
+    attempted: Set[str] = set()
+    screened_out = screened_out_fallback_pmids if screened_out_fallback_pmids is not None else set()
+
+    for fallback in fallback_topics:
+        if len(articles) >= target:
+            break
+        source_note = str(fallback["name"])
+        print(f"[跨领域顶刊启发] {source_note}: searching transferable mechanisms")
+        try:
+            candidates = esearch_pubmed(
+                str(fallback["query"]),
+                days=args.classic_lookback_days,
+                max_results=args.max_results,
+            )
+            candidates = [
+                pmid
+                for pmid in candidates
+                if pmid not in global_seen
+                and pmid not in session_seen
+                and pmid not in screened_out
+                and pmid not in attempted
+            ]
+            picked = candidates[: max(target * 5, target)]
+            if not picked:
+                continue
+            attempted.update(picked)
+            fetched = efetch_pubmed(
+                picked,
+                topic="跨领域顶刊启发",
+                source_type="顶刊扩展",
+                source_note=source_note,
+            )
+        except Exception as exc:
+            print(f"[跨领域顶刊启发] {source_note} failed: {exc}", file=sys.stderr)
+            continue
+
+        for article in fetched:
+            classification = classify_literature(
+                article.title,
+                article.abstract,
+                article.topic,
+                article.journal,
+            )
+            if classification["domain"] != "Cross-domain vascular biology":
+                screened_out.add(article.pmid)
+                continue
+            if classification["translational_relevance"] not in {"Moderate", "Exploratory"}:
+                screened_out.add(article.pmid)
+                continue
+            if len(articles) < target:
+                session_seen.add(article.pmid)
+                articles.append(article)
+        time.sleep(0.34)
+
+    return articles
 
 
 def summarize_article(article: Article, use_ai: bool = False, language: str = "zh") -> str:
@@ -538,7 +632,7 @@ def topic_overview(topic_name: str, articles: List[Article]) -> str:
 
 
 def build_email_body(grouped: Dict[str, List[Article]]) -> str:
-    today = today_utc().strftime("%Y-%m-%d")
+    today = today_shanghai().strftime("%Y-%m-%d")
     total = sum(len(v) for v in grouped.values())
 
     lines: List[str] = []
@@ -612,7 +706,7 @@ def current_run_articles(grouped: Dict[str, List[Article]]) -> List[Article]:
 
 
 def article_to_daily_record(article: Article) -> Dict[str, str]:
-    priority, priority_reason = grade_priority(
+    classification = classify_literature(
         title=article.title,
         abstract=article.abstract,
         topic=article.topic,
@@ -629,46 +723,56 @@ def article_to_daily_record(article: Article) -> Dict[str, str]:
         "pubmed_url": article.url,
         "topic": article.topic,
         "source_type": article.source_type,
-        "priority": priority,
-        "priority_reason": priority_reason,
+        "source_note": article.source_note,
+        **classification,
     }
 
 
-def build_daily_markdown(report_date: str, articles: Sequence[Article]) -> str:
-    lines = [
-        f"# PubMed 每日新增文献 | {report_date}",
-        "",
-        f"本次运行真正新增文献：{len(articles)} 篇。",
-        "",
-        "包含本次运行第一次被系统发现并推送的全部未重复 PMID；使用来源类型区分今日新文献和各类补位。",
-    ]
-
-    if not articles:
-        lines.extend(["", "本次运行未检索到真正新增的文献。"])
-        return "\n".join(lines) + "\n"
-
-    for index, article in enumerate(articles, start=1):
-        lines.extend(
-            [
-                "",
-                f"## {index}. {article.title}",
-                "",
-                f"- PMID: {article.pmid}",
-                f"- 期刊: {article.journal}",
-                f"- 作者: {article.authors or '未提供'}",
-                f"- 发表日期: {article.pub_date or '未提供'}",
-                f"- DOI: {article.doi or '未提供'}",
-                f"- PubMed: {article.url}",
-                f"- 主题: {article.topic}",
-                f"- 来源类型: {article.source_type}",
-                "",
-                "### 摘要",
-                "",
-                article.abstract or "PubMed 未提供摘要。",
-            ]
+def classify_daily_record(record: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = dict(record)
+    normalized["pmid"] = str(normalized.get("pmid", "")).strip()
+    normalized.setdefault("source_note", "")
+    normalized.update(
+        classify_literature(
+            title=str(normalized.get("title", "")),
+            abstract=str(normalized.get("abstract", "")),
+            topic=str(normalized.get("topic", "")),
+            journal=str(normalized.get("journal", "")),
         )
+    )
+    return normalized
 
-    return "\n".join(lines) + "\n"
+
+def merge_daily_records(
+    existing_records: Sequence[Dict[str, Any]],
+    current_records: Sequence[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Merge same-day runs by PMID while preserving first-seen order."""
+    merged: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
+    for raw_record in [*existing_records, *current_records]:
+        if not isinstance(raw_record, dict):
+            continue
+        record = classify_daily_record(raw_record)
+        pmid = record["pmid"]
+        if not pmid:
+            continue
+        if pmid in merged:
+            merged[pmid] = {**merged[pmid], **record}
+        else:
+            merged[pmid] = record
+    return list(merged.values())
+
+
+def build_daily_markdown(report_date: str, records: Sequence[Dict[str, Any]]) -> str:
+    return build_structured_markdown(
+        title=f"PubMed 每日新增文献 | {report_date}",
+        period_line=(
+            "本报告保存当天各次运行第一次被系统发现并推送的全部未重复 PMID；"
+            "同日重复运行按 PMID 合并（Asia/Shanghai）。"
+        ),
+        records=records,
+        empty_text="本次运行未检索到真正新增的文献。",
+    )
 
 
 def write_daily_reports(
@@ -683,17 +787,34 @@ def write_daily_reports(
     json_path = output_dir / f"{report_date}.json"
     markdown_path = output_dir / f"{report_date}.md"
 
+    existing_records: Sequence[Dict[str, Any]] = []
+    if json_path.exists():
+        try:
+            existing_payload = json.loads(json_path.read_text(encoding="utf-8"))
+            raw_existing = (
+                existing_payload.get("articles", [])
+                if isinstance(existing_payload, dict)
+                else existing_payload
+            )
+            if isinstance(raw_existing, list):
+                existing_records = raw_existing
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"Ignoring unreadable same-day report {json_path}: {exc}", file=sys.stderr)
+
+    current_records = [article_to_daily_record(article) for article in articles]
+    merged_records = merge_daily_records(existing_records, current_records)
     payload = {
         "date": report_date,
-        "count": len(articles),
-        "articles": [article_to_daily_record(article) for article in articles],
+        "timezone": "Asia/Shanghai",
+        "count": len(merged_records),
+        "articles": merged_records,
     }
     with json_path.open("w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
         f.write("\n")
 
     with markdown_path.open("w", encoding="utf-8") as f:
-        f.write(build_daily_markdown(report_date, articles))
+        f.write(build_daily_markdown(report_date, merged_records))
 
     return json_path, markdown_path
 
@@ -736,6 +857,9 @@ def main() -> int:
     seen_data = load_seen(args.dedupe_file)
 
     global_seen = set(str(x) for x in seen_data.get("global_seen_pmids", []))
+    screened_out_fallback_pmids = set(
+        str(x) for x in seen_data.get("screened_out_fallback_pmids", [])
+    )
     session_seen: Set[str] = set()
     grouped: Dict[str, List[Article]] = {}
 
@@ -768,7 +892,19 @@ def main() -> int:
         print(f"[{topic_name}] final articles: {len(articles)}, AI summaries: {ai_used}")
         grouped[topic_name] = articles
 
-    today = today_utc().strftime("%Y-%m-%d")
+    if fallback_topics and as_bool(getattr(args, "enable_fallback_fill", "true")):
+        cross_domain_articles = collect_cross_domain_articles(
+            fallback_topics=fallback_topics,
+            args=args,
+            global_seen=global_seen,
+            session_seen=session_seen,
+            screened_out_fallback_pmids=screened_out_fallback_pmids,
+        )
+        for article in cross_domain_articles:
+            article.summary = summarize_article(article, use_ai=False, language=args.summary_language)
+        grouped["跨领域顶刊启发"] = cross_domain_articles
+
+    today = today_shanghai().strftime("%Y-%m-%d")
     subject = f"PubMed每日分组文献汇报 | {today}"
     body = build_email_body(grouped)
 
@@ -799,6 +935,7 @@ def main() -> int:
     seen_data["global_seen_pmids"] = list(
         OrderedDict.fromkeys(list(seen_data.get("global_seen_pmids", [])) + new_pmids)
     )
+    seen_data["screened_out_fallback_pmids"] = sorted(screened_out_fallback_pmids)
 
     save_seen(args.dedupe_file, seen_data)
     print(f"Updated dedupe file: {args.dedupe_file}")

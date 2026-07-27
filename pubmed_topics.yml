@@ -1,11 +1,44 @@
 topics:
   - name: "CM基础机制"
     per_topic_count: 10
+    classic_lookback_days: 7300
     query: >
       ("cerebral cavernous malformation"[Title/Abstract]
       OR "cerebral cavernous malformations"[Title/Abstract]
-      OR "cavernous malformation"[Title/Abstract]
-      OR "cavernous malformations"[Title/Abstract])
+      OR "brain cavernous malformation"[Title/Abstract]
+      OR "brain cavernous malformations"[Title/Abstract]
+      OR "intracranial cavernous malformation"[Title/Abstract]
+      OR "intracranial cavernous malformations"[Title/Abstract]
+      OR "spinal cavernous malformation"[Title/Abstract]
+      OR "spinal cavernous malformations"[Title/Abstract]
+      OR "spinal cord cavernous malformation"[Title/Abstract]
+      OR "spinal cord cavernous malformations"[Title/Abstract]
+      OR "intramedullary cavernous malformation"[Title/Abstract]
+      OR "intramedullary cavernous malformations"[Title/Abstract]
+      OR "cerebral cavernoma"[Title/Abstract]
+      OR "cerebral cavernomas"[Title/Abstract]
+      OR "brain cavernoma"[Title/Abstract]
+      OR "brain cavernomas"[Title/Abstract]
+      OR "intracranial cavernoma"[Title/Abstract]
+      OR "intracranial cavernomas"[Title/Abstract]
+      OR "spinal cavernoma"[Title/Abstract]
+      OR "spinal cavernomas"[Title/Abstract]
+      OR "spinal cord cavernoma"[Title/Abstract]
+      OR "spinal cord cavernomas"[Title/Abstract]
+      OR "intramedullary cavernoma"[Title/Abstract]
+      OR "intramedullary cavernomas"[Title/Abstract]
+      OR "cerebral cavernous angioma"[Title/Abstract]
+      OR "cerebral cavernous angiomas"[Title/Abstract]
+      OR "brain cavernous angioma"[Title/Abstract]
+      OR "brain cavernous angiomas"[Title/Abstract]
+      OR "intracranial cavernous angioma"[Title/Abstract]
+      OR "intracranial cavernous angiomas"[Title/Abstract]
+      OR "spinal cavernous angioma"[Title/Abstract]
+      OR "spinal cavernous angiomas"[Title/Abstract]
+      OR "spinal cord cavernous angioma"[Title/Abstract]
+      OR "spinal cord cavernous angiomas"[Title/Abstract]
+      OR "intramedullary cavernous angioma"[Title/Abstract]
+      OR "intramedullary cavernous angiomas"[Title/Abstract])
       AND
       (KRIT1[Title/Abstract]
       OR CCM1[Title/Abstract]
@@ -17,15 +50,85 @@ topics:
       OR "blood-brain barrier"[Title/Abstract]
       OR KLF4[Title/Abstract]
       OR MEKK3[Title/Abstract]
-      OR RhoA[Title/Abstract])
+      OR RhoA[Title/Abstract]
+      OR PIK3CA[Title/Abstract]
+      OR MAP3K3[Title/Abstract]
+      OR PI3K[Title/Abstract]
+      OR AKT[Title/Abstract]
+      OR mTOR[Title/Abstract]
+      OR MAPK[Title/Abstract]
+      OR ROCK[Title/Abstract]
+      OR KLF2[Title/Abstract]
+      OR HIF1A[Title/Abstract]
+      OR "HIF-1alpha"[Title/Abstract]
+      OR "HIF-1 alpha"[Title/Abstract]
+      OR EPAS1[Title/Abstract]
+      OR "HIF-2alpha"[Title/Abstract]
+      OR "HIF-2 alpha"[Title/Abstract]
+      OR hypoxia[Title/Abstract]
+      OR hypoxic[Title/Abstract]
+      OR macrophage[Title/Abstract]
+      OR macrophages[Title/Abstract]
+      OR microglia[Title/Abstract]
+      OR inflammation[Title/Abstract]
+      OR inflammatory[Title/Abstract]
+      OR "immune response"[Title/Abstract]
+      OR "immune cell"[Title/Abstract]
+      OR ferroptosis[Title/Abstract]
+      OR iron[Title/Abstract]
+      OR "iron metabolism"[Title/Abstract]
+      OR hemosiderin[Title/Abstract]
+      OR haemosiderin[Title/Abstract]
+      OR glycolysis[Title/Abstract]
+      OR mitochondria[Title/Abstract]
+      OR mitochondrial[Title/Abstract]
+      OR metabolism[Title/Abstract]
+      OR "metabolic reprogramming"[Title/Abstract]
+      OR pericyte[Title/Abstract]
+      OR pericytes[Title/Abstract]
+      OR fibroblast[Title/Abstract]
+      OR fibroblasts[Title/Abstract])
 
   - name: "CM药物治疗"
     per_topic_count: 10
+    classic_lookback_days: 7300
     query: >
       ("cerebral cavernous malformation"[Title/Abstract]
       OR "cerebral cavernous malformations"[Title/Abstract]
-      OR "cavernous malformation"[Title/Abstract]
-      OR "cavernous malformations"[Title/Abstract])
+      OR "brain cavernous malformation"[Title/Abstract]
+      OR "brain cavernous malformations"[Title/Abstract]
+      OR "intracranial cavernous malformation"[Title/Abstract]
+      OR "intracranial cavernous malformations"[Title/Abstract]
+      OR "spinal cavernous malformation"[Title/Abstract]
+      OR "spinal cavernous malformations"[Title/Abstract]
+      OR "spinal cord cavernous malformation"[Title/Abstract]
+      OR "spinal cord cavernous malformations"[Title/Abstract]
+      OR "intramedullary cavernous malformation"[Title/Abstract]
+      OR "intramedullary cavernous malformations"[Title/Abstract]
+      OR "cerebral cavernoma"[Title/Abstract]
+      OR "cerebral cavernomas"[Title/Abstract]
+      OR "brain cavernoma"[Title/Abstract]
+      OR "brain cavernomas"[Title/Abstract]
+      OR "intracranial cavernoma"[Title/Abstract]
+      OR "intracranial cavernomas"[Title/Abstract]
+      OR "spinal cavernoma"[Title/Abstract]
+      OR "spinal cavernomas"[Title/Abstract]
+      OR "spinal cord cavernoma"[Title/Abstract]
+      OR "spinal cord cavernomas"[Title/Abstract]
+      OR "intramedullary cavernoma"[Title/Abstract]
+      OR "intramedullary cavernomas"[Title/Abstract]
+      OR "cerebral cavernous angioma"[Title/Abstract]
+      OR "cerebral cavernous angiomas"[Title/Abstract]
+      OR "brain cavernous angioma"[Title/Abstract]
+      OR "brain cavernous angiomas"[Title/Abstract]
+      OR "intracranial cavernous angioma"[Title/Abstract]
+      OR "intracranial cavernous angiomas"[Title/Abstract]
+      OR "spinal cavernous angioma"[Title/Abstract]
+      OR "spinal cavernous angiomas"[Title/Abstract]
+      OR "spinal cord cavernous angioma"[Title/Abstract]
+      OR "spinal cord cavernous angiomas"[Title/Abstract]
+      OR "intramedullary cavernous angioma"[Title/Abstract]
+      OR "intramedullary cavernous angiomas"[Title/Abstract])
       AND
       (treatment[Title/Abstract]
       OR therapy[Title/Abstract]
@@ -43,12 +146,44 @@ topics:
 
   - name: "CM组学数据"
     per_topic_count: 10
+    classic_lookback_days: 7300
     query: >
       ("cerebral cavernous malformation"[Title/Abstract]
       OR "cerebral cavernous malformations"[Title/Abstract]
-      OR "cavernous malformation"[Title/Abstract]
-      OR "cavernous malformations"[Title/Abstract]
-      OR CCM[Title/Abstract])
+      OR "brain cavernous malformation"[Title/Abstract]
+      OR "brain cavernous malformations"[Title/Abstract]
+      OR "intracranial cavernous malformation"[Title/Abstract]
+      OR "intracranial cavernous malformations"[Title/Abstract]
+      OR "spinal cavernous malformation"[Title/Abstract]
+      OR "spinal cavernous malformations"[Title/Abstract]
+      OR "spinal cord cavernous malformation"[Title/Abstract]
+      OR "spinal cord cavernous malformations"[Title/Abstract]
+      OR "intramedullary cavernous malformation"[Title/Abstract]
+      OR "intramedullary cavernous malformations"[Title/Abstract]
+      OR "cerebral cavernoma"[Title/Abstract]
+      OR "cerebral cavernomas"[Title/Abstract]
+      OR "brain cavernoma"[Title/Abstract]
+      OR "brain cavernomas"[Title/Abstract]
+      OR "intracranial cavernoma"[Title/Abstract]
+      OR "intracranial cavernomas"[Title/Abstract]
+      OR "spinal cavernoma"[Title/Abstract]
+      OR "spinal cavernomas"[Title/Abstract]
+      OR "spinal cord cavernoma"[Title/Abstract]
+      OR "spinal cord cavernomas"[Title/Abstract]
+      OR "intramedullary cavernoma"[Title/Abstract]
+      OR "intramedullary cavernomas"[Title/Abstract]
+      OR "cerebral cavernous angioma"[Title/Abstract]
+      OR "cerebral cavernous angiomas"[Title/Abstract]
+      OR "brain cavernous angioma"[Title/Abstract]
+      OR "brain cavernous angiomas"[Title/Abstract]
+      OR "intracranial cavernous angioma"[Title/Abstract]
+      OR "intracranial cavernous angiomas"[Title/Abstract]
+      OR "spinal cavernous angioma"[Title/Abstract]
+      OR "spinal cavernous angiomas"[Title/Abstract]
+      OR "spinal cord cavernous angioma"[Title/Abstract]
+      OR "spinal cord cavernous angiomas"[Title/Abstract]
+      OR "intramedullary cavernous angioma"[Title/Abstract]
+      OR "intramedullary cavernous angiomas"[Title/Abstract])
       AND
       ("single-cell"[Title/Abstract]
       OR "single cell"[Title/Abstract]
@@ -67,16 +202,56 @@ topics:
 
   - name: "CM影像/QSM/出血风险"
     per_topic_count: 10
+    classic_lookback_days: 9000
     query: >
       ("cerebral cavernous malformation"[Title/Abstract]
       OR "cerebral cavernous malformations"[Title/Abstract]
-      OR "cavernous malformation"[Title/Abstract]
-      OR "cavernous malformations"[Title/Abstract])
+      OR "brain cavernous malformation"[Title/Abstract]
+      OR "brain cavernous malformations"[Title/Abstract]
+      OR "intracranial cavernous malformation"[Title/Abstract]
+      OR "intracranial cavernous malformations"[Title/Abstract]
+      OR "spinal cavernous malformation"[Title/Abstract]
+      OR "spinal cavernous malformations"[Title/Abstract]
+      OR "spinal cord cavernous malformation"[Title/Abstract]
+      OR "spinal cord cavernous malformations"[Title/Abstract]
+      OR "intramedullary cavernous malformation"[Title/Abstract]
+      OR "intramedullary cavernous malformations"[Title/Abstract]
+      OR "cerebral cavernoma"[Title/Abstract]
+      OR "cerebral cavernomas"[Title/Abstract]
+      OR "brain cavernoma"[Title/Abstract]
+      OR "brain cavernomas"[Title/Abstract]
+      OR "intracranial cavernoma"[Title/Abstract]
+      OR "intracranial cavernomas"[Title/Abstract]
+      OR "spinal cavernoma"[Title/Abstract]
+      OR "spinal cavernomas"[Title/Abstract]
+      OR "spinal cord cavernoma"[Title/Abstract]
+      OR "spinal cord cavernomas"[Title/Abstract]
+      OR "intramedullary cavernoma"[Title/Abstract]
+      OR "intramedullary cavernomas"[Title/Abstract]
+      OR "cerebral cavernous angioma"[Title/Abstract]
+      OR "cerebral cavernous angiomas"[Title/Abstract]
+      OR "brain cavernous angioma"[Title/Abstract]
+      OR "brain cavernous angiomas"[Title/Abstract]
+      OR "intracranial cavernous angioma"[Title/Abstract]
+      OR "intracranial cavernous angiomas"[Title/Abstract]
+      OR "spinal cavernous angioma"[Title/Abstract]
+      OR "spinal cavernous angiomas"[Title/Abstract]
+      OR "spinal cord cavernous angioma"[Title/Abstract]
+      OR "spinal cord cavernous angiomas"[Title/Abstract]
+      OR "intramedullary cavernous angioma"[Title/Abstract]
+      OR "intramedullary cavernous angiomas"[Title/Abstract])
       AND
       (MRI[Title/Abstract]
       OR "magnetic resonance imaging"[Title/Abstract]
       OR QSM[Title/Abstract]
       OR "quantitative susceptibility mapping"[Title/Abstract]
+      OR "quantitative susceptibility"[Title/Abstract]
+      OR "magnetic susceptibility"[Title/Abstract]
+      OR "susceptibility mapping"[Title/Abstract]
+      OR "delta QSM"[Title/Abstract]
+      OR "ΔQSM"[Title/Abstract]
+      OR "QSM change"[Title/Abstract]
+      OR "longitudinal QSM"[Title/Abstract]
       OR radiomics[Title/Abstract]
       OR hemorrhage[Title/Abstract]
       OR haemorrhage[Title/Abstract]
@@ -86,6 +261,7 @@ topics:
 
   - name: "静脉畸形基础与治疗"
     per_topic_count: 10
+    classic_lookback_days: 5475
     query: >
       ("venous malformation"[Title/Abstract]
       OR "venous malformations"[Title/Abstract]
@@ -103,12 +279,71 @@ topics:
       OR rapamycin[Title/Abstract]
       OR everolimus[Title/Abstract]
       OR alpelisib[Title/Abstract]
+      OR "targeted therapy"[Title/Abstract]
+      OR somatic[Title/Abstract]
+      OR mutation[Title/Abstract]
+      OR endothelial[Title/Abstract]
       OR sclerotherapy[Title/Abstract]
       OR embolization[Title/Abstract]
       OR therapy[Title/Abstract])
 
+  - name: "脑AVM/动静脉畸形"
+    per_topic_count: 10
+    classic_lookback_days: 5475
+    query: >
+      ("brain arteriovenous malformation"[Title/Abstract]
+      OR "brain arteriovenous malformations"[Title/Abstract]
+      OR "cerebral arteriovenous malformation"[Title/Abstract]
+      OR "cerebral arteriovenous malformations"[Title/Abstract]
+      OR "brain AVM"[Title/Abstract]
+      OR "cerebral AVM"[Title/Abstract])
+      AND
+      (somatic[Title/Abstract]
+      OR mutation[Title/Abstract]
+      OR mosaic[Title/Abstract]
+      OR MAPK[Title/Abstract]
+      OR KRAS[Title/Abstract]
+      OR BRAF[Title/Abstract]
+      OR PIK3CA[Title/Abstract]
+      OR endothelial[Title/Abstract]
+      OR angiogenesis[Title/Abstract]
+      OR "vascular remodeling"[Title/Abstract]
+      OR "targeted therapy"[Title/Abstract]
+      OR treatment[Title/Abstract]
+      OR therapy[Title/Abstract]
+      OR hemorrhage[Title/Abstract]
+      OR outcome[Title/Abstract])
+
+  - name: "其他血管畸形/血管异常"
+    per_topic_count: 10
+    classic_lookback_days: 5475
+    query: >
+      ("lymphatic malformation"[Title/Abstract]
+      OR "lymphatic malformations"[Title/Abstract]
+      OR "capillary malformation"[Title/Abstract]
+      OR "capillary malformations"[Title/Abstract]
+      OR "combined vascular malformation"[Title/Abstract]
+      OR "capillary-venous malformation"[Title/Abstract]
+      OR "vascular anomaly"[Title/Abstract]
+      OR "vascular anomalies"[Title/Abstract]
+      OR "PIK3CA-related vascular anomaly"[Title/Abstract]
+      OR "PIK3CA-related overgrowth spectrum"[Title/Abstract])
+      AND
+      (PIK3CA[Title/Abstract]
+      OR TEK[Title/Abstract]
+      OR TIE2[Title/Abstract]
+      OR PI3K[Title/Abstract]
+      OR AKT[Title/Abstract]
+      OR mTOR[Title/Abstract]
+      OR sirolimus[Title/Abstract]
+      OR alpelisib[Title/Abstract]
+      OR somatic[Title/Abstract]
+      OR mosaic[Title/Abstract]
+      OR therapy[Title/Abstract])
+
   - name: "血管畸形PI3K-AKT-mTOR通路"
     per_topic_count: 10
+    classic_lookback_days: 5475
     query: >
       ("vascular anomaly"[Title/Abstract]
       OR "vascular anomalies"[Title/Abstract]
@@ -131,6 +366,7 @@ topics:
 
   - name: "换血/血浆置换疗法"
     per_topic_count: 10
+    classic_lookback_days: 3650
     query: >
       ("therapeutic plasma exchange"[Title/Abstract]
       OR "plasma exchange"[Title/Abstract]
@@ -152,6 +388,7 @@ topics:
 
   - name: "神经免疫/炎症治疗"
     per_topic_count: 10
+    classic_lookback_days: 3650
     query: >
       (neuroinflammation[Title/Abstract]
       OR "neuro-inflammatory"[Title/Abstract]
@@ -176,12 +413,44 @@ topics:
 
   - name: "CM经典文献/综述补位"
     per_topic_count: 10
+    classic_lookback_days: 7300
     query: >
       ("cerebral cavernous malformation"[Title/Abstract]
       OR "cerebral cavernous malformations"[Title/Abstract]
-      OR "cavernous malformation"[Title/Abstract]
-      OR "cavernous malformations"[Title/Abstract]
-      OR CCM[Title/Abstract])
+      OR "brain cavernous malformation"[Title/Abstract]
+      OR "brain cavernous malformations"[Title/Abstract]
+      OR "intracranial cavernous malformation"[Title/Abstract]
+      OR "intracranial cavernous malformations"[Title/Abstract]
+      OR "spinal cavernous malformation"[Title/Abstract]
+      OR "spinal cavernous malformations"[Title/Abstract]
+      OR "spinal cord cavernous malformation"[Title/Abstract]
+      OR "spinal cord cavernous malformations"[Title/Abstract]
+      OR "intramedullary cavernous malformation"[Title/Abstract]
+      OR "intramedullary cavernous malformations"[Title/Abstract]
+      OR "cerebral cavernoma"[Title/Abstract]
+      OR "cerebral cavernomas"[Title/Abstract]
+      OR "brain cavernoma"[Title/Abstract]
+      OR "brain cavernomas"[Title/Abstract]
+      OR "intracranial cavernoma"[Title/Abstract]
+      OR "intracranial cavernomas"[Title/Abstract]
+      OR "spinal cavernoma"[Title/Abstract]
+      OR "spinal cavernomas"[Title/Abstract]
+      OR "spinal cord cavernoma"[Title/Abstract]
+      OR "spinal cord cavernomas"[Title/Abstract]
+      OR "intramedullary cavernoma"[Title/Abstract]
+      OR "intramedullary cavernomas"[Title/Abstract]
+      OR "cerebral cavernous angioma"[Title/Abstract]
+      OR "cerebral cavernous angiomas"[Title/Abstract]
+      OR "brain cavernous angioma"[Title/Abstract]
+      OR "brain cavernous angiomas"[Title/Abstract]
+      OR "intracranial cavernous angioma"[Title/Abstract]
+      OR "intracranial cavernous angiomas"[Title/Abstract]
+      OR "spinal cavernous angioma"[Title/Abstract]
+      OR "spinal cavernous angiomas"[Title/Abstract]
+      OR "spinal cord cavernous angioma"[Title/Abstract]
+      OR "spinal cord cavernous angiomas"[Title/Abstract]
+      OR "intramedullary cavernous angioma"[Title/Abstract]
+      OR "intramedullary cavernous angiomas"[Title/Abstract])
       AND
       ("review"[Publication Type]
       OR "systematic review"[Publication Type]
@@ -195,6 +464,7 @@ topics:
 
   - name: "静脉畸形经典文献/综述补位"
     per_topic_count: 10
+    classic_lookback_days: 5475
     query: >
       ("venous malformation"[Title/Abstract]
       OR "venous malformations"[Title/Abstract]
