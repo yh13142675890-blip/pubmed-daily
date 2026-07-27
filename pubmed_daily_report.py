@@ -27,6 +27,7 @@ import yaml
 
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+DAILY_NEW_SOURCE_TYPE = "今日新文献"
 
 CLASSIC_FILTER = """
 ("review"[Publication Type]
@@ -64,6 +65,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--per-topic-count", type=int, default=10)
     parser.add_argument("--max-results", type=int, default=800)
     parser.add_argument("--dedupe-file", default="data/seen_pmids.json")
+    parser.add_argument("--daily-reports-dir", default="reports/daily")
     parser.add_argument("--summary-language", default="zh", choices=["zh", "en"])
     parser.add_argument("--enable-fallback-fill", default="true")
     parser.add_argument("--ai-summarize-per-topic", type=int, default=0)
@@ -385,7 +387,7 @@ def collect_articles_for_topic(
         print(f"[{topic_name}] {source_type}: added {len(fetched)}")
         time.sleep(0.34)
 
-    add_stage(query, args.days, "今日新文献")
+    add_stage(query, args.days, DAILY_NEW_SOURCE_TYPE)
     add_stage(query, args.lookback_days, "近期补位")
     add_stage(classic_query(query), args.classic_lookback_days, "经典补位")
 
@@ -594,6 +596,95 @@ def build_email_body(grouped: Dict[str, List[Article]]) -> str:
     return "\n".join(lines)
 
 
+def daily_new_articles(grouped: Dict[str, List[Article]]) -> List[Article]:
+    """Return only genuinely new articles found by the current daily search stage."""
+    return [
+        article
+        for articles in grouped.values()
+        for article in articles
+        if article.source_type == DAILY_NEW_SOURCE_TYPE
+    ]
+
+
+def article_to_daily_record(article: Article) -> Dict[str, str]:
+    return {
+        "pmid": article.pmid,
+        "title": article.title,
+        "abstract": article.abstract,
+        "journal": article.journal,
+        "authors": article.authors,
+        "publication_date": article.pub_date,
+        "doi": article.doi,
+        "pubmed_url": article.url,
+        "topic": article.topic,
+        "source_type": article.source_type,
+    }
+
+
+def build_daily_markdown(report_date: str, articles: Sequence[Article]) -> str:
+    lines = [
+        f"# PubMed 每日新增文献 | {report_date}",
+        "",
+        f"本次运行真正新增文献：{len(articles)} 篇。",
+        "",
+        "仅包含本次运行中来源类型为“今日新文献”的文章；历史补位和顶刊扩展不纳入本报告。",
+    ]
+
+    if not articles:
+        lines.extend(["", "本次运行未检索到真正新增的文献。"])
+        return "\n".join(lines) + "\n"
+
+    for index, article in enumerate(articles, start=1):
+        lines.extend(
+            [
+                "",
+                f"## {index}. {article.title}",
+                "",
+                f"- PMID: {article.pmid}",
+                f"- 期刊: {article.journal}",
+                f"- 作者: {article.authors or '未提供'}",
+                f"- 发表日期: {article.pub_date or '未提供'}",
+                f"- DOI: {article.doi or '未提供'}",
+                f"- PubMed: {article.url}",
+                f"- 主题: {article.topic}",
+                f"- 来源类型: {article.source_type}",
+                "",
+                "### 摘要",
+                "",
+                article.abstract or "PubMed 未提供摘要。",
+            ]
+        )
+
+    return "\n".join(lines) + "\n"
+
+
+def write_daily_reports(
+    grouped: Dict[str, List[Article]],
+    report_date: str,
+    reports_dir: str = "reports/daily",
+) -> Tuple[Path, Path]:
+    articles = daily_new_articles(grouped)
+    output_dir = Path(reports_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    json_path = output_dir / f"{report_date}.json"
+    markdown_path = output_dir / f"{report_date}.md"
+
+    payload = {
+        "date": report_date,
+        "count": len(articles),
+        "articles": [article_to_daily_record(article) for article in articles],
+    }
+    with json_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+    with markdown_path.open("w", encoding="utf-8") as f:
+        f.write(build_daily_markdown(report_date, articles))
+
+    return json_path, markdown_path
+
+
 def send_email(subject: str, body: str) -> None:
     smtp_host = require_env("SMTP_HOST")
     smtp_port = int(require_env("SMTP_PORT"))
@@ -667,6 +758,14 @@ def main() -> int:
     today = today_utc().strftime("%Y-%m-%d")
     subject = f"PubMed每日分组文献汇报 | {today}"
     body = build_email_body(grouped)
+
+    daily_json_path, daily_markdown_path = write_daily_reports(
+        grouped=grouped,
+        report_date=today,
+        reports_dir=args.daily_reports_dir,
+    )
+    print(f"Saved daily JSON report: {daily_json_path}")
+    print(f"Saved daily Markdown report: {daily_markdown_path}")
 
     if args.push == "smtp":
         print("Sending email via SMTP...")

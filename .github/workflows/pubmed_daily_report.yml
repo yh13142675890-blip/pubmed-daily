@@ -57,10 +57,10 @@ jobs:
             --ai-summarize-per-topic 0 \
             --push smtp
 
-      - name: Commit dedupe database
+      - name: Commit dedupe database and daily reports
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add data/seen_pmids.json
+          git add data/seen_pmids.json reports/daily/
           git diff --cached --quiet || git commit -m "Update PubMed seen PMID database"
           git push
