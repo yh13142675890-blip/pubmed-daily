@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 from weekly_ccm_report import write_weekly_reports
 
@@ -43,11 +44,11 @@ class WeeklyCcmReportTests(unittest.TestCase):
             weekly_dir = root / "weekly"
             daily_dir.mkdir()
 
-            write_daily_report(daily_dir, "2026-07-19", [make_record("999", "QSM in CCM")])
+            write_daily_report(daily_dir, "2026-07-19", [make_record("999", "QSM in cerebral cavernous malformations")])
 
             s_article = make_record(
                 "1001",
-                "QSM cohort of hemorrhage in CCM",
+                "QSM cohort of hemorrhage in cerebral cavernous malformations",
                 topic="CM影像/QSM/出血风险",
                 source_type="经典补位",
             )
@@ -57,9 +58,9 @@ class WeeklyCcmReportTests(unittest.TestCase):
             write_daily_report(
                 daily_dir,
                 "2026-07-21",
-                [make_record("1002", "Single-cell cohort", source_type="经典补位")],
+                [make_record("1002", "Single-cell atlas of cerebral cavernous malformations", source_type="经典补位")],
             )
-            write_daily_report(daily_dir, "2026-07-22", [make_record("1003", "Natural history cohort")])
+            write_daily_report(daily_dir, "2026-07-22", [make_record("1003", "Natural history cohort of cerebral cavernous malformations")])
             write_daily_report(daily_dir, "2026-07-23", [make_record("1004", "Broad background review")])
             write_daily_report(daily_dir, "2026-07-24", [make_record("1001", "Duplicate PMID")])
             write_daily_report(daily_dir, "2026-07-27", [make_record("1005", "mTOR study")])
@@ -79,13 +80,15 @@ class WeeklyCcmReportTests(unittest.TestCase):
         self.assertEqual(payload["period_end"], "2026-07-26")
         self.assertEqual(payload["total_count"], 4)
         self.assertEqual(payload["counts"], {"S": 1, "A": 1, "B": 1, "C": 1})
-        self.assertEqual(payload["articles"]["S"][0]["priority_reason"], "S: CM/CCM + QSM")
+        self.assertEqual(payload["articles"]["S"][0]["domain"], "CCM")
+        self.assertEqual(payload["articles"]["S"][0]["translational_relevance"], "Direct")
         self.assertEqual(payload["articles"]["S"][0]["source_type"], "经典补位")
         self.assertEqual(payload["articles"]["A"][0]["source_type"], "经典补位")
         self.assertNotIn("2026-07-19.json", payload["source_files"])
         self.assertNotIn("2026-07-27.json", payload["source_files"])
-        self.assertIn("## S 级文献（1）", markdown)
-        self.assertIn("## C 级文献（1）", markdown)
+        self.assertIn("## 1. CCM 核心进展（3）", markdown)
+        self.assertIn("### S（1）", markdown)
+        self.assertIn("Asia/Shanghai", markdown)
 
     def test_weekly_report_is_created_without_daily_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -105,7 +108,36 @@ class WeeklyCcmReportTests(unittest.TestCase):
 
         self.assertEqual(payload["total_count"], 0)
         self.assertEqual(payload["counts"], {"S": 0, "A": 0, "B": 0, "C": 0})
-        self.assertIn("本周无此级别文献", markdown)
+        self.assertIn("本周无新增文献", markdown)
+
+    def test_default_uses_previous_complete_monday_to_sunday(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            daily_dir = root / "daily"
+            weekly_dir = root / "weekly"
+            daily_dir.mkdir()
+            write_daily_report(
+                daily_dir,
+                "2026-07-26",
+                [make_record("included", "Cavernoma natural history cohort")],
+            )
+            write_daily_report(
+                daily_dir,
+                "2026-07-27",
+                [make_record("excluded", "Cavernoma natural history cohort")],
+            )
+
+            with patch("weekly_ccm_report.today_shanghai", return_value=date(2026, 7, 29)):
+                json_path, _ = write_weekly_reports(
+                    daily_reports_dir=str(daily_dir),
+                    weekly_reports_dir=str(weekly_dir),
+                )
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(payload["period_start"], "2026-07-20")
+        self.assertEqual(payload["period_end"], "2026-07-26")
+        self.assertEqual(payload["total_count"], 1)
+        self.assertEqual(payload["articles"]["B"][0]["pmid"], "included")
 
 
 if __name__ == "__main__":

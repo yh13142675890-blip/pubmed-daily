@@ -7,8 +7,13 @@ import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
+from zoneinfo import ZoneInfo
 
-from priority_grading import PRIORITY_ORDER, grade_priority
+from priority_grading import PRIORITY_ORDER, classify_literature
+from reporting import build_structured_markdown
+
+
+SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 
 
 def parse_args() -> argparse.Namespace:
@@ -17,17 +22,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--weekly-reports-dir", default="reports/weekly")
     parser.add_argument(
         "--end-date",
-        help="Exclusive end date in YYYY-MM-DD format; defaults to today in UTC",
+        help=(
+            "Exclusive end date in YYYY-MM-DD format; defaults to the current week's "
+            "Monday in Asia/Shanghai so the previous complete week is reported"
+        ),
     )
     return parser.parse_args()
 
 
+def today_shanghai() -> dt.date:
+    return dt.datetime.now(tz=SHANGHAI_TZ).date()
+
+
 def today_utc() -> dt.date:
-    return dt.datetime.utcnow().date()
+    """Backward-compatible alias; weekly periods use Asia/Shanghai."""
+    return today_shanghai()
 
 
 def parse_end_date(value: str | None) -> dt.date:
-    return dt.date.fromisoformat(value) if value else today_utc()
+    return dt.date.fromisoformat(value) if value else previous_complete_week_end(today_shanghai())
+
+
+def previous_complete_week_end(reference_date: dt.date) -> dt.date:
+    return reference_date - dt.timedelta(days=reference_date.weekday())
 
 
 def report_period(end_date: dt.date) -> Tuple[dt.date, dt.date, str]:
@@ -78,15 +95,15 @@ def load_daily_articles(paths: Sequence[Path]) -> List[Dict[str, Any]]:
                 continue
 
             article = dict(raw_article)
-            priority, priority_reason = grade_priority(
+            classification = classify_literature(
                 title=str(article.get("title", "")),
                 abstract=str(article.get("abstract", "")),
                 topic=str(article.get("topic", "")),
                 journal=str(article.get("journal", "")),
             )
             article["pmid"] = pmid
-            article["priority"] = priority
-            article["priority_reason"] = priority_reason
+            article.setdefault("source_note", "")
+            article.update(classification)
             article["daily_report_date"] = path.stem
 
             seen_pmids.add(pmid)
@@ -111,6 +128,7 @@ def build_weekly_payload(
         "week": week_id,
         "period_start": period_start.isoformat(),
         "period_end": period_end.isoformat(),
+        "timezone": "Asia/Shanghai",
         "source_files": [path.name for path in paths],
         "total_count": len(articles),
         "counts": {priority: len(grouped[priority]) for priority in PRIORITY_ORDER},
@@ -119,48 +137,20 @@ def build_weekly_payload(
 
 
 def build_weekly_markdown(payload: Dict[str, Any]) -> str:
-    counts = payload["counts"]
-    lines = [
-        f"# CCM/CM 周报 | {payload['week']}",
-        "",
-        f"统计区间：{payload['period_start']} 至 {payload['period_end']}（UTC）",
-        "",
-        f"共汇总 {payload['total_count']} 篇真正新增文献。",
-        "",
-        "| 优先级 | 数量 |",
-        "| --- | ---: |",
+    records = [
+        article
+        for priority in PRIORITY_ORDER
+        for article in payload["articles"][priority]
     ]
-    lines.extend(f"| {priority} | {counts[priority]} |" for priority in PRIORITY_ORDER)
-
-    for priority in PRIORITY_ORDER:
-        articles = payload["articles"][priority]
-        lines.extend(["", f"## {priority} 级文献（{len(articles)}）"])
-        if not articles:
-            lines.extend(["", "本周无此级别文献。"])
-            continue
-
-        for index, article in enumerate(articles, start=1):
-            lines.extend(
-                [
-                    "",
-                    f"### {index}. {article.get('title') or '[No title]'}",
-                    "",
-                    f"- PMID: {article['pmid']}",
-                    f"- 优先级依据: {article['priority_reason']}",
-                    f"- 主题: {article.get('topic') or '未提供'}",
-                    f"- 期刊: {article.get('journal') or '未提供'}",
-                    f"- 发表日期: {article.get('publication_date') or '未提供'}",
-                    f"- DOI: {article.get('doi') or '未提供'}",
-                    f"- PubMed: {article.get('pubmed_url') or '未提供'}",
-                    f"- 日报日期: {article['daily_report_date']}",
-                    "",
-                    "#### 摘要",
-                    "",
-                    str(article.get("abstract") or "PubMed 未提供摘要。"),
-                ]
-            )
-
-    return "\n".join(lines) + "\n"
+    return build_structured_markdown(
+        title=f"CCM 文献情报周报 | {payload['week']}",
+        period_line=(
+            f"统计区间：{payload['period_start']} 至 {payload['period_end']}"
+            "（Asia/Shanghai，上一个完整自然周）"
+        ),
+        records=records,
+        empty_text="本周无新增文献。",
+    )
 
 
 def write_weekly_reports(
@@ -168,7 +158,8 @@ def write_weekly_reports(
     weekly_reports_dir: str = "reports/weekly",
     end_date: dt.date | None = None,
 ) -> Tuple[Path, Path]:
-    payload = build_weekly_payload(daily_reports_dir, end_date or today_utc())
+    effective_end_date = end_date or previous_complete_week_end(today_shanghai())
+    payload = build_weekly_payload(daily_reports_dir, effective_end_date)
     output_dir = Path(weekly_reports_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
