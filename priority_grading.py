@@ -17,7 +17,17 @@ CM_CONTENT_PATTERNS = (
 CM_TOPIC_PATTERNS = CM_CONTENT_PATTERNS + (
     r"(?:ccm|cm)\s*基础机制",
 )
-QSM_PATTERNS = (r"\bqsm\b", r"\bquantitative susceptibility mapping\b")
+QSM_PATTERNS = (
+    r"\bqsm\b",
+    r"\bquantitative susceptibility mapping\b",
+    r"\bquantitative susceptibility\b",
+    r"\bmagnetic susceptibility\b",
+    r"\bsusceptibility mapping\b",
+    r"\bdelta[- ]?qsm\b",
+    r"δ\s*qsm\b",
+    r"\bqsm changes?\b",
+    r"\blongitudinal qsm\b",
+)
 TRIAL_PATTERNS = (
     r"\brct\b",
     r"\brandomi[sz]ed\b.*\btrial\b",
@@ -34,8 +44,12 @@ CCM_MECHANISM_PATTERNS = (
     r"\bccm[123]\b",
     r"\bpdcd10\b",
     r"\bklf4\b",
+    r"\bklf2\b",
+    r"\bmap3k3\b",
     r"\bmekk3\b",
     r"\brhoa\b",
+    r"\brock[12]?\b",
+    r"\bmapk\b",
 )
 
 A_RULES = (
@@ -49,17 +63,46 @@ A_RULES = (
     ("HIF1A/HIF-1α", (r"\bhif1a\b", r"\bhif[- ]?1(?:alpha)?\b")),
     ("EPAS1/HIF-2α", (r"\bepas1\b", r"\bhif[- ]?2(?:alpha)?\b")),
     (
+        "MAP3K3/MEKK3/KLF2/KLF4/RhoA/ROCK/MAPK",
+        (
+            r"\bmap3k3\b",
+            r"\bmekk3\b",
+            r"\bklf2\b",
+            r"\bklf4\b",
+            r"\brhoa\b",
+            r"\brock[12]?\b",
+            r"\bmapk\b",
+        ),
+    ),
+    (
+        "macrophage/microglia/pericyte/fibroblast",
+        (r"\bmacrophages?\b", r"\bmicroglia\b", r"\bpericytes?\b", r"\bfibroblasts?\b"),
+    ),
+    (
+        "iron metabolism/hemosiderin/ferroptosis",
+        (r"\biron metabolism\b", r"\bhemosiderin\b", r"\bferroptosis\b"),
+    ),
+    (
+        "glycolysis/mitochondria/metabolic reprogramming",
+        (r"\bglycolysis\b", r"\bmitochondri(?:a|al|on)\b", r"\bmetabolic reprogramming\b"),
+    ),
+    (
+        "genomics/epigenomics/spatial omics/bioinformatics",
+        (r"\bgenomics\b", r"\bepigenomics\b", r"\bspatial[- ]omics\b", r"\bbioinformatics\b"),
+    ),
+    (
         "immune/inflammation/metabolism",
         (r"\bimmun[a-z0-9-]*\b", r"\binflamm(?:ation|atory)\b", r"\bmetaboli(?:sm|c)\b"),
     ),
     (
-        "plasma exchange / plasmapheresis / blood exchange",
+        "plasma exchange / plasmapheresis / blood exchange / immunoadsorption",
         (
             r"\b(?:therapeutic )?plasma exchange\b",
             r"\bplasmapheresis\b",
             r"\bblood exchange\b",
             r"\bexchange transfusion\b",
             r"\bred cell exchange\b",
+            r"\bimmunoadsorption\b",
         ),
     ),
 )
@@ -71,6 +114,39 @@ B_RULES = (
     ("epilepsy", (r"\bepilep(?:sy|tic)\b", r"\bseizures?\b")),
     ("outcome", (r"\boutcomes?\b",)),
     ("surgery", (r"\bsurger(?:y|ies|ical)\b", r"\bresection\b")),
+    (
+        "prospective/retrospective/registry/follow-up/prognosis",
+        (
+            r"\bprospective\b",
+            r"\bretrospective\b",
+            r"\bregistr(?:y|ies)\b",
+            r"\bfollow[- ]up\b",
+            r"\bprognosis\b",
+        ),
+    ),
+    (
+        "quality of life/patient-reported outcome/PRO/mRS",
+        (
+            r"\bquality of life\b",
+            r"\bpatient[- ]reported outcomes?\b",
+            r"\bpro\b",
+            r"\bmrs\b",
+        ),
+    ),
+    (
+        "radiosurgery/stereotactic radiosurgery",
+        (r"\bstereotactic radiosurgery\b", r"\bradiosurgery\b"),
+    ),
+    (
+        "SWI/DCE/radiomics/machine learning/risk prediction",
+        (
+            r"\bswi\b",
+            r"\bdce\b",
+            r"\bradiomics\b",
+            r"\bmachine[- ]learning\b",
+            r"\brisk prediction\b",
+        ),
+    ),
     (
         "general clinical imaging",
         (

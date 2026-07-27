@@ -7,7 +7,12 @@ from pathlib import Path
 from weekly_ccm_report import write_weekly_reports
 
 
-def make_record(pmid: str, title: str, topic: str = "测试主题") -> dict:
+def make_record(
+    pmid: str,
+    title: str,
+    topic: str = "测试主题",
+    source_type: str = "今日新文献",
+) -> dict:
     return {
         "pmid": pmid,
         "title": title,
@@ -18,7 +23,7 @@ def make_record(pmid: str, title: str, topic: str = "测试主题") -> dict:
         "doi": f"10.1000/{pmid}",
         "pubmed_url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
         "topic": topic,
-        "source_type": "今日新文献",
+        "source_type": source_type,
     }
 
 
@@ -44,11 +49,16 @@ class WeeklyCcmReportTests(unittest.TestCase):
                 "1001",
                 "QSM cohort of hemorrhage in CCM",
                 topic="CM影像/QSM/出血风险",
+                source_type="经典补位",
             )
             s_article["priority"] = "B"
             s_article["priority_reason"] = "stale value"
             write_daily_report(daily_dir, "2026-07-20", [s_article])
-            write_daily_report(daily_dir, "2026-07-21", [make_record("1002", "Single-cell cohort")])
+            write_daily_report(
+                daily_dir,
+                "2026-07-21",
+                [make_record("1002", "Single-cell cohort", source_type="经典补位")],
+            )
             write_daily_report(daily_dir, "2026-07-22", [make_record("1003", "Natural history cohort")])
             write_daily_report(daily_dir, "2026-07-23", [make_record("1004", "Broad background review")])
             write_daily_report(daily_dir, "2026-07-24", [make_record("1001", "Duplicate PMID")])
@@ -70,6 +80,8 @@ class WeeklyCcmReportTests(unittest.TestCase):
         self.assertEqual(payload["total_count"], 4)
         self.assertEqual(payload["counts"], {"S": 1, "A": 1, "B": 1, "C": 1})
         self.assertEqual(payload["articles"]["S"][0]["priority_reason"], "S: CM/CCM + QSM")
+        self.assertEqual(payload["articles"]["S"][0]["source_type"], "经典补位")
+        self.assertEqual(payload["articles"]["A"][0]["source_type"], "经典补位")
         self.assertNotIn("2026-07-19.json", payload["source_files"])
         self.assertNotIn("2026-07-27.json", payload["source_files"])
         self.assertIn("## S 级文献（1）", markdown)

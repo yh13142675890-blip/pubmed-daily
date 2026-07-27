@@ -14,6 +14,28 @@ class PriorityGradingTests(unittest.TestCase):
         self.assertEqual(priority, "S")
         self.assertEqual(reason, "S: CM/CCM + QSM")
 
+    def test_all_cm_qsm_expressions_are_s(self) -> None:
+        expressions = (
+            "QSM",
+            "quantitative susceptibility mapping",
+            "quantitative susceptibility",
+            "magnetic susceptibility",
+            "susceptibility mapping",
+            "delta QSM",
+            "ΔQSM",
+            "QSM change",
+            "longitudinal QSM",
+        )
+
+        for expression in expressions:
+            with self.subTest(expression=expression):
+                priority, reason = grade_priority(
+                    title=f"{expression} cohort study in CCM",
+                    abstract="Retrospective hemorrhage outcome analysis.",
+                )
+                self.assertEqual(priority, "S")
+                self.assertEqual(reason, "S: CM/CCM + QSM")
+
     def test_cm_clinical_trial_is_s(self) -> None:
         priority, reason = grade_priority(
             title="Clinical trial readiness framework",
@@ -46,7 +68,10 @@ class PriorityGradingTests(unittest.TestCase):
             ("HIF-1α and hemorrhage", "A: HIF1A/HIF-1α"),
             ("EPAS1 outcome study", "A: EPAS1/HIF-2α"),
             ("Immune cohort analysis", "A: immune/inflammation/metabolism"),
-            ("Therapeutic plasma exchange cohort", "A: plasma exchange / plasmapheresis / blood exchange"),
+            (
+                "Therapeutic plasma exchange cohort",
+                "A: plasma exchange / plasmapheresis / blood exchange / immunoadsorption",
+            ),
         )
 
         for title, expected_reason in cases:
@@ -54,6 +79,62 @@ class PriorityGradingTests(unittest.TestCase):
                 priority, reason = grade_priority(title=title)
                 self.assertEqual(priority, "A")
                 self.assertEqual(reason, expected_reason)
+
+    def test_expanded_mechanism_and_omics_keywords_are_a(self) -> None:
+        keywords = (
+            "MAP3K3",
+            "MEKK3",
+            "KLF2",
+            "KLF4",
+            "RhoA",
+            "ROCK",
+            "MAPK",
+            "macrophage",
+            "microglia",
+            "pericyte",
+            "fibroblast",
+            "iron metabolism",
+            "hemosiderin",
+            "ferroptosis",
+            "glycolysis",
+            "mitochondria",
+            "metabolic reprogramming",
+            "genomics",
+            "epigenomics",
+            "spatial omics",
+            "bioinformatics",
+            "immunoadsorption",
+        )
+
+        for keyword in keywords:
+            with self.subTest(keyword=keyword):
+                priority, _ = grade_priority(title=f"{keyword} retrospective cohort")
+                self.assertEqual(priority, "A")
+
+    def test_expanded_clinical_keywords_are_b(self) -> None:
+        keywords = (
+            "prospective",
+            "retrospective",
+            "registry",
+            "follow-up",
+            "prognosis",
+            "quality of life",
+            "patient-reported outcome",
+            "PRO",
+            "mRS",
+            "radiosurgery",
+            "stereotactic radiosurgery",
+            "SWI",
+            "DCE",
+            "radiomics",
+            "machine learning",
+            "risk prediction",
+        )
+
+        for keyword in keywords:
+            with self.subTest(keyword=keyword):
+                priority, _ = grade_priority(title=f"{keyword} clinical assessment")
+                self.assertEqual(priority, "B")
 
     def test_ccm_basic_mechanism_topic_is_a(self) -> None:
         priority, reason = grade_priority(
