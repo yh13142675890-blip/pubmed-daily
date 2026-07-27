@@ -62,6 +62,8 @@ class DailyReportTests(unittest.TestCase):
                     "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/1001/",
                     "topic": "测试主题",
                     "source_type": "今日新文献",
+                    "priority": "C",
+                    "priority_reason": "C: no S/A/B priority signal matched",
                 }
             ],
         )

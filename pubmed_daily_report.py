@@ -24,6 +24,8 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 import requests
 import yaml
 
+from priority_grading import grade_priority
+
 
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
@@ -607,6 +609,12 @@ def daily_new_articles(grouped: Dict[str, List[Article]]) -> List[Article]:
 
 
 def article_to_daily_record(article: Article) -> Dict[str, str]:
+    priority, priority_reason = grade_priority(
+        title=article.title,
+        abstract=article.abstract,
+        topic=article.topic,
+        journal=article.journal,
+    )
     return {
         "pmid": article.pmid,
         "title": article.title,
@@ -618,6 +626,8 @@ def article_to_daily_record(article: Article) -> Dict[str, str]:
         "pubmed_url": article.url,
         "topic": article.topic,
         "source_type": article.source_type,
+        "priority": priority,
+        "priority_reason": priority_reason,
     }
 
 
