@@ -12,7 +12,7 @@
 2. `translational_relevance`：`Direct`、`Strong`、`Moderate`、`Exploratory` 或 `Low`。
 3. `priority`：`S`、`A`、`B` 或 `C`，高优先级覆盖低优先级。
 
-单独的 `CCM` 或 `CM` 缩写不是 cerebral cavernous malformation 的强证据。generic `cavernoma/cavernomas` 也不是强 CCM 证据，必须有 brain、cerebral、intracranial、spinal、spinal cord、intramedullary、CNS 等解剖上下文；spinal/spinal cord/intramedullary cavernous malformation 属于 CCM。不得让 corneal confocal microscopy、cirrhotic cardiomyopathy、orbital/portal cavernoma 或 topic 名称触发 CCM domain 或 S 级。
+单独的 `CCM` 或 `CM` 缩写不是 cerebral cavernous malformation 的强证据。generic `cavernoma/cavernomas` 和 `cavernous angioma(s)` 也不是强 CCM 证据，必须有 brain、cerebral、intracranial、spinal、spinal cord、intramedullary、CNS 等解剖上下文；spinal/spinal cord/intramedullary cavernous malformation 或 cavernous angioma 属于 CCM。不得让 corneal confocal microscopy、cirrhotic cardiomyopathy、orbital/portal/hepatic cavernoma/angioma 或 topic 名称触发 CCM domain 或 S 级。
 
 # Priority 规则
 

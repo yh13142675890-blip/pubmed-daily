@@ -238,19 +238,68 @@ fallback_topics: []
             topics, _ = load_config(str(path))
         self.assertEqual(topics[0]["classic_lookback_days"], 9000)
 
-    def test_all_ccm_queries_include_spinal_terms_without_generic_cavernoma(self) -> None:
+    def test_all_direct_ccm_queries_share_anatomically_limited_disease_terms(self) -> None:
         config_path = Path(__file__).parents[1] / "pubmed_topics.yml"
         topics, _ = load_config(str(config_path))
-        ccm_topics = [topic for topic in topics if topic["name"].startswith("CM")]
+        direct_topic_names = {
+            "CM基础机制",
+            "CM药物治疗",
+            "CM组学数据",
+            "CM影像/QSM/出血风险",
+            "CM经典文献/综述补位",
+        }
+        ccm_topics = [topic for topic in topics if topic["name"] in direct_topic_names]
+        disease_clauses = []
 
-        self.assertGreaterEqual(len(ccm_topics), 5)
+        self.assertEqual({topic["name"] for topic in ccm_topics}, direct_topic_names)
         for topic in ccm_topics:
             with self.subTest(topic=topic["name"]):
                 query = topic["query"]
+                disease_clause, separator, _ = query.partition(") AND (")
+                self.assertEqual(separator, ") AND (")
+                disease_clauses.append(disease_clause)
                 self.assertIn('"spinal cord cavernous malformation"', query)
                 self.assertIn('"intramedullary cavernoma"', query)
+                self.assertIn('"cerebral cavernous angioma"', query)
+                self.assertIn('"spinal cord cavernous angioma"', query)
+                self.assertIn('"intramedullary cavernous angioma"', query)
+                self.assertNotIn("CCM[Title/Abstract]", query)
+                self.assertNotIn("CM[Title/Abstract]", query)
                 self.assertNotIn("OR cavernoma[Title/Abstract]", query)
                 self.assertNotIn("OR cavernomas[Title/Abstract]", query)
+                self.assertNotIn('OR "cavernous angioma"[Title/Abstract]', query)
+
+        self.assertEqual(len(set(disease_clauses)), 1)
+
+    def test_cm_basic_mechanism_query_matches_mechanism_whitelist(self) -> None:
+        config_path = Path(__file__).parents[1] / "pubmed_topics.yml"
+        topics, _ = load_config(str(config_path))
+        query = next(topic["query"] for topic in topics if topic["name"] == "CM基础机制")
+        disease_clause, separator, mechanism_clause = query.partition(") AND (")
+
+        self.assertEqual(separator, ") AND (")
+        self.assertIn('"cerebral cavernous malformation"', disease_clause)
+        required_terms = (
+            "PIK3CA",
+            "MAP3K3",
+            "mTOR",
+            "HIF1A",
+            "EPAS1",
+            "hypoxia",
+            "macrophage",
+            "microglia",
+            "ferroptosis",
+            "glycolysis",
+            "metabolism",
+        )
+        for term in required_terms:
+            with self.subTest(term=term):
+                self.assertIn(f"{term}[Title/Abstract]", mechanism_clause)
+
+        self.assertNotIn("CCM[Title/Abstract]", query)
+        self.assertNotIn("CM[Title/Abstract]", query)
+        self.assertNotIn("OR cavernoma[Title/Abstract]", disease_clause)
+        self.assertNotIn('OR "cavernous angioma"[Title/Abstract]', disease_clause)
 
     def test_plasma_exchange_is_special_interest_and_not_repeated_in_low_section(self) -> None:
         plasma = make_article("4001", "今日新文献", topic="换血/血浆置换疗法")

@@ -26,6 +26,7 @@ CCM_STRONG_PATTERNS = (
     r"\bspinal cord cavernous malformations?\b",
     r"\bintramedullary cavernous malformations?\b",
     r"\b(?:cerebral|brain|intracranial|spinal|spinal cord|intramedullary|cns) cavernomas?\b",
+    r"\b(?:cerebral|brain|intracranial|spinal|spinal cord|intramedullary|cns) cavernous angiomas?\b",
     r"\bcerebral cavernomas?\b",
     r"\bbrain cavernomas?\b",
     r"\bkrit1\b",

@@ -54,6 +54,29 @@ class PriorityGradingTests(unittest.TestCase):
                 self.assertNotEqual(result["domain"], "CCM")
                 self.assertNotEqual(result["translational_relevance"], "Direct")
 
+    def test_cns_limited_cavernous_angioma_is_ccm_but_non_cns_is_not(self) -> None:
+        positive = (
+            "spinal cord cavernous angioma",
+            "cerebral cavernous angioma",
+        )
+        negative = (
+            "orbital cavernous angioma",
+            "hepatic cavernous angioma",
+            "cavernous angioma",
+        )
+
+        for expression in positive:
+            with self.subTest(expression=expression):
+                result = classify_literature(f"Natural history of {expression}")
+                self.assertEqual(result["domain"], "CCM")
+                self.assertEqual(result["translational_relevance"], "Direct")
+
+        for expression in negative:
+            with self.subTest(expression=expression):
+                result = classify_literature(f"Clinical imaging of {expression}")
+                self.assertNotEqual(result["domain"], "CCM")
+                self.assertNotEqual(result["translational_relevance"], "Direct")
+
     def test_all_qsm_expressions_require_and_upgrade_strong_ccm(self) -> None:
         expressions = (
             "QSM",
