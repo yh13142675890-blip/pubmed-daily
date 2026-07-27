@@ -68,6 +68,7 @@ class SearchCollectionTests(unittest.TestCase):
             "Hypoxia disrupted endothelial junctions and vascular permeability.",
         )
         session_seen = set()
+        screened_out = set()
         with (
             patch("pubmed_daily_report.esearch_pubmed", return_value=["1", "2"]),
             patch("pubmed_daily_report.efetch_pubmed", return_value=[rejected, accepted]),
@@ -78,6 +79,7 @@ class SearchCollectionTests(unittest.TestCase):
                 self.args,
                 global_seen=set(),
                 session_seen=session_seen,
+                screened_out_fallback_pmids=screened_out,
             )
 
         self.assertEqual([item.pmid for item in result], ["2"])
@@ -85,6 +87,39 @@ class SearchCollectionTests(unittest.TestCase):
         self.assertEqual(result[0].source_type, "顶刊扩展")
         self.assertEqual(result[0].source_note, "fixture fallback")
         self.assertEqual(session_seen, {"2"})
+        self.assertEqual(screened_out, {"1"})
+
+    def test_rejected_fallback_pmid_is_not_fetched_again(self) -> None:
+        rejected = article(
+            "1",
+            "PI3K signaling and vascular invasion in colorectal cancer",
+            "Tumor growth and treatment resistance were assessed.",
+        )
+        screened_out = set()
+        with (
+            patch("pubmed_daily_report.esearch_pubmed", return_value=["1"]),
+            patch("pubmed_daily_report.efetch_pubmed", return_value=[rejected]) as fetch,
+            patch("pubmed_daily_report.time.sleep"),
+        ):
+            first = collect_cross_domain_articles(
+                [{"name": "fixture fallback", "query": "top-journal-query"}],
+                self.args,
+                global_seen=set(),
+                session_seen=set(),
+                screened_out_fallback_pmids=screened_out,
+            )
+            second = collect_cross_domain_articles(
+                [{"name": "fixture fallback", "query": "top-journal-query"}],
+                self.args,
+                global_seen=set(),
+                session_seen=set(),
+                screened_out_fallback_pmids=screened_out,
+            )
+
+        self.assertEqual(first, [])
+        self.assertEqual(second, [])
+        self.assertEqual(screened_out, {"1"})
+        self.assertEqual(fetch.call_count, 1)
 
 
 if __name__ == "__main__":

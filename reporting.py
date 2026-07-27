@@ -28,6 +28,8 @@ def _article_lines(article: Dict[str, Any], heading_level: int = 3) -> List[str]
         f"- 主题: {article.get('topic') or '未提供'}",
         f"- 来源类型: {article.get('source_type') or '未提供'}",
     ]
+    if article.get("special_interest"):
+        lines.append(f"- 独立科研兴趣: {article['special_interest']}")
     if article.get("source_note"):
         lines.append(f"- 来源说明: {article['source_note']}")
     lines.extend(
@@ -117,7 +119,8 @@ def build_structured_markdown(
     plasma = [
         article
         for article in records
-        if is_plasma_exchange_text(article.get("title"), article.get("abstract"))
+        if article.get("special_interest") == "Plasma exchange / blood exchange"
+        or is_plasma_exchange_text(article.get("title"), article.get("abstract"))
     ]
     lines.extend(["", f"## 4. 血浆置换 / 换血（{len(plasma)}）"])
     if plasma:
@@ -143,11 +146,14 @@ def build_structured_markdown(
     low_relevance = [
         article
         for article in records
-        if article.get("domain") == "Out-of-scope"
-        or (
-            article.get("domain") == "Cross-domain vascular biology"
-            and article.get("pmid") not in {item.get("pmid") for item in cross_domain}
-            and article.get("translational_relevance") not in {"Strong", "Moderate"}
+        if not article.get("special_interest")
+        and (
+            article.get("domain") == "Out-of-scope"
+            or (
+                article.get("domain") == "Cross-domain vascular biology"
+                and article.get("pmid") not in {item.get("pmid") for item in cross_domain}
+                and article.get("translational_relevance") not in {"Strong", "Moderate"}
+            )
         )
     ]
     lines.extend(["", f"## 6. 低相关性 / 范围外记录（{len(low_relevance)}）"])

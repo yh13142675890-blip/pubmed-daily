@@ -144,15 +144,26 @@ def load_config(path: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
 def load_seen(path: str) -> Dict[str, Any]:
     p = Path(path)
     if not p.exists():
-        return {"global_seen_pmids": [], "by_topic": {}, "updated_at": None}
+        return {
+            "global_seen_pmids": [],
+            "screened_out_fallback_pmids": [],
+            "by_topic": {},
+            "updated_at": None,
+        }
 
     try:
         with p.open("r", encoding="utf-8") as f:
             data = json.load(f)
     except Exception:
-        data = {"global_seen_pmids": [], "by_topic": {}, "updated_at": None}
+        data = {
+            "global_seen_pmids": [],
+            "screened_out_fallback_pmids": [],
+            "by_topic": {},
+            "updated_at": None,
+        }
 
     data.setdefault("global_seen_pmids", [])
+    data.setdefault("screened_out_fallback_pmids", [])
     data.setdefault("by_topic", {})
     data.setdefault("updated_at", None)
     return data
@@ -166,6 +177,11 @@ def save_seen(path: str, data: Dict[str, Any]) -> None:
 
     global_seen = list(OrderedDict.fromkeys(str(x) for x in data.get("global_seen_pmids", [])))
     data["global_seen_pmids"] = global_seen[-50000:]
+
+    screened_out = list(
+        OrderedDict.fromkeys(str(x) for x in data.get("screened_out_fallback_pmids", []))
+    )
+    data["screened_out_fallback_pmids"] = screened_out[-50000:]
 
     by_topic = data.get("by_topic", {})
     for topic, pmids in list(by_topic.items()):
@@ -420,6 +436,7 @@ def collect_cross_domain_articles(
     args: argparse.Namespace,
     global_seen: Set[str],
     session_seen: Set[str],
+    screened_out_fallback_pmids: Optional[Set[str]] = None,
 ) -> List[Article]:
     """Collect a separate, mechanism-filtered top-journal inspiration group."""
     if not as_bool(args.enable_fallback_fill):
@@ -428,6 +445,7 @@ def collect_cross_domain_articles(
     target = max(0, int(args.per_topic_count))
     articles: List[Article] = []
     attempted: Set[str] = set()
+    screened_out = screened_out_fallback_pmids if screened_out_fallback_pmids is not None else set()
 
     for fallback in fallback_topics:
         if len(articles) >= target:
@@ -443,9 +461,14 @@ def collect_cross_domain_articles(
             candidates = [
                 pmid
                 for pmid in candidates
-                if pmid not in global_seen and pmid not in session_seen and pmid not in attempted
+                if pmid not in global_seen
+                and pmid not in session_seen
+                and pmid not in screened_out
+                and pmid not in attempted
             ]
             picked = candidates[: max(target * 5, target)]
+            if not picked:
+                continue
             attempted.update(picked)
             fetched = efetch_pubmed(
                 picked,
@@ -465,13 +488,14 @@ def collect_cross_domain_articles(
                 article.journal,
             )
             if classification["domain"] != "Cross-domain vascular biology":
+                screened_out.add(article.pmid)
                 continue
             if classification["translational_relevance"] not in {"Moderate", "Exploratory"}:
+                screened_out.add(article.pmid)
                 continue
-            session_seen.add(article.pmid)
-            articles.append(article)
-            if len(articles) >= target:
-                break
+            if len(articles) < target:
+                session_seen.add(article.pmid)
+                articles.append(article)
         time.sleep(0.34)
 
     return articles
@@ -833,6 +857,9 @@ def main() -> int:
     seen_data = load_seen(args.dedupe_file)
 
     global_seen = set(str(x) for x in seen_data.get("global_seen_pmids", []))
+    screened_out_fallback_pmids = set(
+        str(x) for x in seen_data.get("screened_out_fallback_pmids", [])
+    )
     session_seen: Set[str] = set()
     grouped: Dict[str, List[Article]] = {}
 
@@ -871,6 +898,7 @@ def main() -> int:
             args=args,
             global_seen=global_seen,
             session_seen=session_seen,
+            screened_out_fallback_pmids=screened_out_fallback_pmids,
         )
         for article in cross_domain_articles:
             article.summary = summarize_article(article, use_ai=False, language=args.summary_language)
@@ -907,6 +935,7 @@ def main() -> int:
     seen_data["global_seen_pmids"] = list(
         OrderedDict.fromkeys(list(seen_data.get("global_seen_pmids", [])) + new_pmids)
     )
+    seen_data["screened_out_fallback_pmids"] = sorted(screened_out_fallback_pmids)
 
     save_seen(args.dedupe_file, seen_data)
     print(f"Updated dedupe file: {args.dedupe_file}")

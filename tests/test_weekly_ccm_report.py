@@ -119,12 +119,12 @@ class WeeklyCcmReportTests(unittest.TestCase):
             write_daily_report(
                 daily_dir,
                 "2026-07-26",
-                [make_record("included", "Cavernoma natural history cohort")],
+                [make_record("included", "Spinal cord cavernous malformation natural history cohort")],
             )
             write_daily_report(
                 daily_dir,
                 "2026-07-27",
-                [make_record("excluded", "Cavernoma natural history cohort")],
+                [make_record("excluded", "Spinal cord cavernous malformation natural history cohort")],
             )
 
             with patch("weekly_ccm_report.today_shanghai", return_value=date(2026, 7, 29)):

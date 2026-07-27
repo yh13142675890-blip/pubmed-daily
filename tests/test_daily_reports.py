@@ -7,7 +7,15 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from pubmed_daily_report import Article, load_config, main, today_shanghai, write_daily_reports
+from pubmed_daily_report import (
+    Article,
+    load_config,
+    load_seen,
+    main,
+    save_seen,
+    today_shanghai,
+    write_daily_reports,
+)
 
 
 def make_article(pmid: str, source_type: str, topic: str = "测试主题") -> Article:
@@ -76,6 +84,7 @@ class DailyReportTests(unittest.TestCase):
             "topic",
             "source_type",
             "source_note",
+            "special_interest",
             "domain",
             "domain_reason",
             "translational_relevance",
@@ -228,6 +237,57 @@ fallback_topics: []
             path.write_text(config, encoding="utf-8")
             topics, _ = load_config(str(path))
         self.assertEqual(topics[0]["classic_lookback_days"], 9000)
+
+    def test_all_ccm_queries_include_spinal_terms_without_generic_cavernoma(self) -> None:
+        config_path = Path(__file__).parents[1] / "pubmed_topics.yml"
+        topics, _ = load_config(str(config_path))
+        ccm_topics = [topic for topic in topics if topic["name"].startswith("CM")]
+
+        self.assertGreaterEqual(len(ccm_topics), 5)
+        for topic in ccm_topics:
+            with self.subTest(topic=topic["name"]):
+                query = topic["query"]
+                self.assertIn('"spinal cord cavernous malformation"', query)
+                self.assertIn('"intramedullary cavernoma"', query)
+                self.assertNotIn("OR cavernoma[Title/Abstract]", query)
+                self.assertNotIn("OR cavernomas[Title/Abstract]", query)
+
+    def test_plasma_exchange_is_special_interest_and_not_repeated_in_low_section(self) -> None:
+        plasma = make_article("4001", "今日新文献", topic="换血/血浆置换疗法")
+        plasma.title = "Therapeutic plasma exchange for autoimmune disease"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            json_path, markdown_path = write_daily_reports(
+                {"换血/血浆置换疗法": [plasma]},
+                "2026-07-30",
+                reports_dir=temp_dir,
+            )
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            markdown = markdown_path.read_text(encoding="utf-8")
+
+        record = payload["articles"][0]
+        self.assertEqual(record["special_interest"], "Plasma exchange / blood exchange")
+        self.assertEqual(record["priority"], "A")
+        self.assertEqual(record["translational_relevance"], "Exploratory")
+        self.assertEqual(markdown.count(plasma.title), 1)
+        self.assertIn("## 4. 血浆置换 / 换血（1）", markdown)
+        self.assertIn("## 6. 低相关性 / 范围外记录（0）", markdown)
+
+    def test_screened_fallback_state_persists_separately_from_global_seen(self) -> None:
+        data = {
+            "global_seen_pmids": ["seen"],
+            "screened_out_fallback_pmids": ["screened", "screened"],
+            "by_topic": {},
+            "updated_at": None,
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "seen.json"
+            save_seen(str(path), data)
+            loaded = load_seen(str(path))
+
+        self.assertEqual(loaded["global_seen_pmids"], ["seen"])
+        self.assertEqual(loaded["screened_out_fallback_pmids"], ["screened"])
+        self.assertNotIn("screened", loaded["global_seen_pmids"])
 
 
 if __name__ == "__main__":

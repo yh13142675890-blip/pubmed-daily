@@ -34,6 +34,26 @@ class PriorityGradingTests(unittest.TestCase):
                 self.assertNotEqual(result["domain"], "CCM")
                 self.assertNotEqual(result["priority"], "S")
 
+    def test_spinal_cavernous_malformation_is_ccm_direct(self) -> None:
+        for expression in (
+            "spinal cavernous malformation",
+            "spinal cord cavernous malformation",
+            "spinal cavernoma",
+            "intramedullary cavernous malformation",
+            "intramedullary cavernoma",
+        ):
+            with self.subTest(expression=expression):
+                result = classify_literature(f"Natural history of {expression}")
+                self.assertEqual(result["domain"], "CCM")
+                self.assertEqual(result["translational_relevance"], "Direct")
+
+    def test_orbital_and_portal_cavernoma_are_not_ccm(self) -> None:
+        for expression in ("orbital cavernoma", "portal cavernoma", "cavernoma"):
+            with self.subTest(expression=expression):
+                result = classify_literature(f"Clinical imaging of {expression}")
+                self.assertNotEqual(result["domain"], "CCM")
+                self.assertNotEqual(result["translational_relevance"], "Direct")
+
     def test_all_qsm_expressions_require_and_upgrade_strong_ccm(self) -> None:
         expressions = (
             "QSM",
@@ -150,7 +170,11 @@ class PriorityGradingTests(unittest.TestCase):
     def test_plasma_exchange_is_independent_a_interest(self) -> None:
         for term in ("therapeutic plasma exchange", "plasmapheresis", "immunoadsorption", "red cell exchange"):
             with self.subTest(term=term):
-                self.assertEqual(classify_literature(term)["priority"], "A")
+                result = classify_literature(term)
+                self.assertEqual(result["priority"], "A")
+                self.assertEqual(result["special_interest"], "Plasma exchange / blood exchange")
+                self.assertEqual(result["translational_relevance"], "Exploratory")
+                self.assertIn("Independent", result["translational_reason"])
 
     def test_cross_domain_requires_mechanism_and_vascular_context(self) -> None:
         result = classify_literature(
@@ -167,6 +191,15 @@ class PriorityGradingTests(unittest.TestCase):
             "Tumor metabolism and proliferation were measured.",
         )
         self.assertEqual(result["domain"], "Out-of-scope")
+        self.assertEqual(result["priority"], "C")
+
+    def test_vascular_invasion_is_not_sufficient_cross_domain_context(self) -> None:
+        result = classify_literature(
+            "PI3K signaling and vascular invasion in colorectal cancer",
+            "The study assessed tumor growth, metastasis, and treatment resistance.",
+        )
+        self.assertEqual(result["domain"], "Out-of-scope")
+        self.assertEqual(result["translational_relevance"], "Low")
         self.assertEqual(result["priority"], "C")
 
 

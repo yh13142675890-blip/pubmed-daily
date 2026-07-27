@@ -21,9 +21,13 @@ DOMAIN_ORDER = (
 CCM_STRONG_PATTERNS = (
     r"\bcerebral cavernous malformations?\b",
     r"\bbrain cavernous malformations?\b",
+    r"\bintracranial cavernous malformations?\b",
+    r"\bspinal cavernous malformations?\b",
+    r"\bspinal cord cavernous malformations?\b",
+    r"\bintramedullary cavernous malformations?\b",
+    r"\b(?:cerebral|brain|intracranial|spinal|spinal cord|intramedullary|cns) cavernomas?\b",
     r"\bcerebral cavernomas?\b",
     r"\bbrain cavernomas?\b",
-    r"\bcavernomas?\b",
     r"\bkrit1\b",
     r"\bccm1\b",
     r"\bccm2\b",
@@ -170,15 +174,18 @@ MECHANISM_WHITELIST_PATTERNS = (
 
 VASCULAR_CONTEXT_PATTERNS = (
     r"\bendotheli(?:al|um)\b",
-    r"\bvascular\b",
+    r"\bvasculature\b",
     r"\bblood[- ]brain barrier\b",
-    r"\bbrain microvasculature\b",
+    r"\b(?:brain )?microvascul(?:ar|ature)\b",
     r"\bvascular permeability\b",
     r"\bangiogenesis\b",
     r"\bvascular remodel(?:ing|ling)\b",
     r"\bneurovascular\b",
     r"\b(?:retinal|pulmonary|tumou?r) vasculature\b",
-    r"\bstroke\b",
+    r"\b(?:retinal|pulmonary) vascular (?:disease|biology)\b",
+    r"\btumou?r vascular biology\b",
+    r"\bvascular inflammation\b",
+    r"\bvascular biology\b",
 )
 
 TARGETED_THERAPY_PATTERNS = (
@@ -335,6 +342,12 @@ def classify_translational_relevance(
     if resolved_domain == "CCM":
         return "Direct", "The article has strong direct CCM evidence"
 
+    if is_plasma_exchange_text(text):
+        return (
+            "Exploratory",
+            "Independent plasma exchange/blood exchange research interest; not disease-domain relevance",
+        )
+
     related_domains = {"Venous malformation", "Brain AVM / AVM", "Other vascular malformation"}
     if resolved_domain in related_domains:
         if matches_any(text, (*MECHANISM_WHITELIST_PATTERNS, *TARGETED_THERAPY_PATTERNS)):
@@ -409,10 +422,19 @@ def classify_literature(
     topic: str = "",
     journal: str = "",
 ) -> Dict[str, str]:
+    special_interest = (
+        "Plasma exchange / blood exchange"
+        if is_plasma_exchange_text(title, abstract, journal)
+        else ""
+    )
     domain, domain_reason = classify_domain(title, abstract, topic, journal)
     relevance, relevance_reason = classify_translational_relevance(
         title, abstract, topic, journal, domain
     )
+    if special_interest and "independent" not in relevance_reason.casefold():
+        relevance_reason = (
+            f"{relevance_reason}; also tracked as an independent plasma exchange/blood exchange interest"
+        )
     priority, priority_reason = grade_priority(
         title,
         abstract,
@@ -422,6 +444,7 @@ def classify_literature(
         translational_relevance=relevance,
     )
     return {
+        "special_interest": special_interest,
         "domain": domain,
         "domain_reason": domain_reason,
         "translational_relevance": relevance,
