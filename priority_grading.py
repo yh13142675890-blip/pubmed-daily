@@ -92,7 +92,15 @@ A_RULES = (
     ),
     (
         "immune/inflammation/metabolism",
-        (r"\bimmun[a-z0-9-]*\b", r"\binflamm(?:ation|atory)\b", r"\bmetaboli(?:sm|c)\b"),
+        (
+            r"\bimmune\b",
+            r"\bimmunity\b",
+            r"\bimmunolog(?:y|ical)\b",
+            r"\bimmune responses?\b",
+            r"\bimmune cells?\b",
+            r"\binflamm(?:ation|atory)\b",
+            r"\bmetaboli(?:sm|c)\b",
+        ),
     ),
     (
         "plasma exchange / plasmapheresis / blood exchange / immunoadsorption",

@@ -26,7 +26,7 @@
 - iron metabolism/hemosiderin/ferroptosis
 - glycolysis/mitochondria/metabolic reprogramming
 - genomics/epigenomics/spatial omics/bioinformatics
-- immune/inflammation/metabolism
+- immune/immunity/immunology/immunological/immune response/immune cell/inflammation/metabolism
 - plasma exchange / plasmapheresis / blood exchange / immunoadsorption
 
 ## B 级
@@ -52,6 +52,7 @@
 - 高优先级规则覆盖低优先级规则，匹配顺序固定为 S、A、B、C。
 - CM/CCM + QSM 永远不能被降为 B 级。
 - `priority` 必须由确定性 Python 规则生成，禁止让 LLM 决定或修改优先级。
+- `immunohistochemistry`、`immunostaining` 等纯实验技术词本身不得触发 A 级；只有明确的免疫概念词或其他 A 级信号才能升级。
 
 # Daily 持久化范围
 

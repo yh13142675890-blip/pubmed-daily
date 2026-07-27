@@ -111,6 +111,31 @@ class PriorityGradingTests(unittest.TestCase):
                 priority, _ = grade_priority(title=f"{keyword} retrospective cohort")
                 self.assertEqual(priority, "A")
 
+    def test_precise_immune_concepts_are_a(self) -> None:
+        immune_concepts = (
+            "immune",
+            "immunity",
+            "immunology",
+            "immunological",
+            "immune response",
+            "immune responses",
+            "immune cell",
+            "immune cells",
+        )
+
+        for concept in immune_concepts:
+            with self.subTest(concept=concept):
+                priority, reason = grade_priority(title=f"{concept} in CCM")
+                self.assertEqual(priority, "A")
+                self.assertEqual(reason, "A: immune/inflammation/metabolism")
+
+    def test_pure_immune_technique_terms_do_not_raise_priority_to_a(self) -> None:
+        for technique in ("immunohistochemistry", "immunostaining"):
+            with self.subTest(technique=technique):
+                priority, reason = grade_priority(title=f"{technique} assay protocol")
+                self.assertEqual(priority, "C")
+                self.assertEqual(reason, "C: no S/A/B priority signal matched")
+
     def test_expanded_clinical_keywords_are_b(self) -> None:
         keywords = (
             "prospective",
