@@ -1,0 +1,40 @@
+name: Weekly CCM Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 09:00 Beijing time (UTC+8) every Monday
+    - cron: "0 1 * * 1"
+
+permissions:
+  contents: write
+
+jobs:
+  weekly-ccm-report:
+    name: Build Weekly CCM Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate weekly CCM report
+        run: |
+          python weekly_ccm_report.py \
+            --daily-reports-dir reports/daily \
+            --weekly-reports-dir reports/weekly
+
+      - name: Commit weekly report
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add reports/weekly/
+          git diff --cached --quiet || git commit -m "Update weekly CCM report"
+          git push

@@ -25,15 +25,22 @@ def make_article(pmid: str, source_type: str, topic: str = "测试主题") -> Ar
 
 
 class DailyReportTests(unittest.TestCase):
-    def test_reports_include_only_current_daily_articles(self) -> None:
+    def test_reports_include_all_current_run_source_types_once(self) -> None:
         daily_article = make_article("1001", "今日新文献")
+        classic_qsm_article = make_article(
+            "1003",
+            "经典补位",
+            topic="CM影像/QSM/出血风险",
+        )
+        classic_qsm_article.title = "Magnetic susceptibility in CCM"
         grouped = {
             "测试主题": [
                 daily_article,
                 make_article("1002", "近期补位"),
-                make_article("1003", "经典补位"),
+                classic_qsm_article,
                 make_article("1004", "顶刊扩展"),
-            ]
+            ],
+            "重复主题": [make_article("1002", "近期补位")],
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -47,31 +54,39 @@ class DailyReportTests(unittest.TestCase):
             markdown = markdown_path.read_text(encoding="utf-8")
 
         self.assertEqual(payload["date"], "2026-07-27")
-        self.assertEqual(payload["count"], 1)
+        self.assertEqual(payload["count"], 4)
         self.assertEqual(
-            payload["articles"],
-            [
-                {
-                    "pmid": "1001",
-                    "title": "Title 1001",
-                    "abstract": "Abstract 1001",
-                    "journal": "Test Journal",
-                    "authors": "Author A, Author B",
-                    "publication_date": "2026 Jul 27",
-                    "doi": "10.1000/1001",
-                    "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/1001/",
-                    "topic": "测试主题",
-                    "source_type": "今日新文献",
-                }
-            ],
+            [article["pmid"] for article in payload["articles"]],
+            ["1001", "1002", "1003", "1004"],
         )
-        self.assertIn("Title 1001", markdown)
-        self.assertNotIn("Title 1002", markdown)
-        self.assertNotIn("Title 1003", markdown)
-        self.assertNotIn("Title 1004", markdown)
+        self.assertEqual(
+            [article["source_type"] for article in payload["articles"]],
+            ["今日新文献", "近期补位", "经典补位", "顶刊扩展"],
+        )
+        required_fields = {
+            "pmid",
+            "title",
+            "abstract",
+            "journal",
+            "authors",
+            "publication_date",
+            "doi",
+            "pubmed_url",
+            "topic",
+            "source_type",
+            "priority",
+            "priority_reason",
+        }
+        self.assertTrue(all(required_fields <= article.keys() for article in payload["articles"]))
+        classic_record = next(article for article in payload["articles"] if article["pmid"] == "1003")
+        self.assertEqual(classic_record["priority"], "S")
+        self.assertEqual(classic_record["priority_reason"], "S: CM/CCM + QSM")
+        for pmid in ("1001", "1002", "1003", "1004"):
+            expected_title = "Magnetic susceptibility in CCM" if pmid == "1003" else f"Title {pmid}"
+            self.assertIn(expected_title, markdown)
 
     def test_reports_are_created_when_there_are_no_daily_articles(self) -> None:
-        grouped = {"测试主题": [make_article("2001", "近期补位")]}
+        grouped = {"测试主题": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             json_path, markdown_path = write_daily_reports(
@@ -139,7 +154,14 @@ class DailyReportTests(unittest.TestCase):
             ["existing", "3001", "3002"],
         )
         self.assertEqual(seen_data["by_topic"]["测试主题"], ["3001", "3002"])
-        self.assertEqual([article["pmid"] for article in payload["articles"]], ["3001"])
+        self.assertEqual(
+            [article["pmid"] for article in payload["articles"]],
+            ["3001", "3002"],
+        )
+        self.assertEqual(
+            [article["source_type"] for article in payload["articles"]],
+            ["今日新文献", "经典补位"],
+        )
 
 
 if __name__ == "__main__":

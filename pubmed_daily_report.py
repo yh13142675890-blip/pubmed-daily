@@ -24,6 +24,8 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 import requests
 import yaml
 
+from priority_grading import grade_priority
+
 
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
@@ -596,17 +598,26 @@ def build_email_body(grouped: Dict[str, List[Article]]) -> str:
     return "\n".join(lines)
 
 
-def daily_new_articles(grouped: Dict[str, List[Article]]) -> List[Article]:
-    """Return only genuinely new articles found by the current daily search stage."""
-    return [
-        article
-        for articles in grouped.values()
-        for article in articles
-        if article.source_type == DAILY_NEW_SOURCE_TYPE
-    ]
+def current_run_articles(grouped: Dict[str, List[Article]]) -> List[Article]:
+    """Return every PMID first selected and pushed in the current run."""
+    articles: List[Article] = []
+    seen_pmids: Set[str] = set()
+    for topic_articles in grouped.values():
+        for article in topic_articles:
+            if article.pmid in seen_pmids:
+                continue
+            seen_pmids.add(article.pmid)
+            articles.append(article)
+    return articles
 
 
 def article_to_daily_record(article: Article) -> Dict[str, str]:
+    priority, priority_reason = grade_priority(
+        title=article.title,
+        abstract=article.abstract,
+        topic=article.topic,
+        journal=article.journal,
+    )
     return {
         "pmid": article.pmid,
         "title": article.title,
@@ -618,6 +629,8 @@ def article_to_daily_record(article: Article) -> Dict[str, str]:
         "pubmed_url": article.url,
         "topic": article.topic,
         "source_type": article.source_type,
+        "priority": priority,
+        "priority_reason": priority_reason,
     }
 
 
@@ -627,7 +640,7 @@ def build_daily_markdown(report_date: str, articles: Sequence[Article]) -> str:
         "",
         f"本次运行真正新增文献：{len(articles)} 篇。",
         "",
-        "仅包含本次运行中来源类型为“今日新文献”的文章；历史补位和顶刊扩展不纳入本报告。",
+        "包含本次运行第一次被系统发现并推送的全部未重复 PMID；使用来源类型区分今日新文献和各类补位。",
     ]
 
     if not articles:
@@ -663,7 +676,7 @@ def write_daily_reports(
     report_date: str,
     reports_dir: str = "reports/daily",
 ) -> Tuple[Path, Path]:
-    articles = daily_new_articles(grouped)
+    articles = current_run_articles(grouped)
     output_dir = Path(reports_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
