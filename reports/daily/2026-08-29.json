@@ -1,0 +1,27 @@
+{
+  "date": "2026-08-29",
+  "timezone": "Asia/Shanghai",
+  "count": 1,
+  "articles": [
+    {
+      "pmid": "42664308",
+      "title": "Platelet-derived serotonin drives age-related lung pathology in SARS-CoV-2 infection.",
+      "abstract": "Elderly individuals affected by COVID-19 are vulnerable to severe respiratory failure for reasons that have remained poorly defined. Here, we show that platelet-released serotonin drives lung pathology in a mouse model of age-associated disease severity after SARS-CoV-2 infection. In middle-aged mice and aged human healthy donors, platelet serotonin release upon activation was enhanced, and increased morbidity with respiratory dysfunction was associated with activated platelets aggregating and promoting fibrin deposition in the lung microvasculature. Pharmacologic or genetic disruption of serotonin uptake, or blockade of serotonin-dependent signaling, attenuated platelet activation and protected against respiratory distress, independently of viral replication and immune responses. Inhibition of fibrin formation similarly reduced disease severity, implicating serotonin-driven platelet procoagulant activity as a key contributor to age-related lung dysfunction. Thus, serotonin-mediated platelet procoagulant activity is a major contributor to respiratory insufficiency during SARS-CoV-2 infection and a potential therapeutic target for preserving pulmonary function, particularly in the elderly.",
+      "journal": "Science immunology",
+      "authors": "Marotta D, Perucchini C, Grillo M, Fumagalli V, Di Lucia P, Rixon J, et al.",
+      "publication_date": "2026 Aug 28",
+      "doi": "10.1126/sciimmunol.aec9853",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/42664308/",
+      "topic": "跨领域顶刊启发",
+      "source_type": "顶刊扩展",
+      "source_note": "免疫炎症/代谢顶刊扩展",
+      "special_interest": "",
+      "domain": "Cross-domain vascular biology",
+      "domain_reason": "Transferable mechanism appears with explicit vascular/endothelial context",
+      "translational_relevance": "Exploratory",
+      "translational_reason": "Cross-domain vascular mechanism with exploratory CCM relevance",
+      "priority": "C",
+      "priority_reason": "C: broad, exploratory, low-relevance, or unmatched article"
+    }
+  ]
+}
