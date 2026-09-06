@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-06",
+  "timezone": "Asia/Shanghai",
+  "count": 1,
+  "articles": [
+    {
+      "pmid": "42697000",
+      "title": "T1-weighted volumetric subtraction imaging in MRI-guided laser interstitial thermal therapy for cerebral cavernous malformations: A technical note.",
+      "abstract": "BACKGROUND: Cerebral cavernomas are vascular malformations that can cause neurological problems such as hemorrhage and seizures. MRI is the preferred imaging modality, but hemosiderin deposits in cavernomas often lead to signal loss artifacts, complicating treatment planning. MRI-guided laser interstitial thermal therapy (MRIg-LITT) is an innovative, minimally invasive technique that offers a new approach to treating these lesions, but confirming ablation on MRI may be challenging due to these artifacts.\nMETHODS: We evaluated six patients (4 females, 2 males; median age 29 years old) with symptomatic cerebral cavernomas treated with MRIg-LITT. The procedure involved immediate post-treatment imaging to assess lesion reduction and edema. A volumetric T1-weighted subtraction technique was employed after ablation to enhance visualization of contrast enhancement.\nRESULTS: Thermal ablation was assessed by diffusion hyperintensity and gadolinium-enhanced peripheral rings, despite susceptibility artifacts. T1-weighted volumetric subtraction sequences effectively minimized artifacts and improved visualization of the lesions. No hemorrhagic complications occurred, and expected post-LITT edema was managed with corticosteroid therapy.\nCONCLUSION: T1-weighted volumetric subtraction sequences reduce magnetic susceptibility artifacts and improve visualization of the post-ablation enhancing rim in MRIg-LITT for cerebral cavernomas. Their clinical impact on treatment assessment remains to be determined.",
+      "journal": "Journal of neuroradiology = Journal de neuroradiologie",
+      "authors": "Broutin C, Constans JM, Lefranc M",
+      "publication_date": "2026 Sep 04",
+      "doi": "10.1016/j.neurad.2026.101600",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/42697000/",
+      "topic": "CM基础机制",
+      "source_type": "今日新文献",
+      "source_note": "",
+      "special_interest": "",
+      "domain": "CCM",
+      "domain_reason": "Strong CCM disease/gene expression in title or abstract",
+      "translational_relevance": "Direct",
+      "translational_reason": "The article has strong direct CCM evidence",
+      "priority": "S",
+      "priority_reason": "S: strong CCM evidence + QSM"
+    }
+  ]
+}
