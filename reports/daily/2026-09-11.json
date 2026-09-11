@@ -1,0 +1,47 @@
+{
+  "date": "2026-09-11",
+  "timezone": "Asia/Shanghai",
+  "count": 2,
+  "articles": [
+    {
+      "pmid": "42717070",
+      "title": "Drug-delivering particles aim to breach the blood-brain barrier.",
+      "abstract": "",
+      "journal": "Nature",
+      "authors": "Makin S",
+      "publication_date": "2026 Sep",
+      "doi": "10.1038/d41586-026-02655-6",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/42717070/",
+      "topic": "跨领域顶刊启发",
+      "source_type": "顶刊扩展",
+      "source_note": "Cell/Nature/Science生命科学顶刊",
+      "special_interest": "",
+      "domain": "Cross-domain vascular biology",
+      "domain_reason": "Transferable mechanism appears with explicit vascular/endothelial context",
+      "translational_relevance": "Moderate",
+      "translational_reason": "Different disease with a highly transferable vascular/endothelial mechanism",
+      "priority": "A",
+      "priority_reason": "A: highly transferable cross-domain vascular mechanism"
+    },
+    {
+      "pmid": "42717209",
+      "title": "Th17 effector cytokines induce shared and distinct microglial and endothelial cell responses in a mouse model for post-streptococcal encephalitis.",
+      "abstract": "Group A Streptococcus (GAS) infections cause neuropsychiatric complications in children, but the mechanisms linking peripheral infection to brain dysfunction remain unclear. Using mouse genetics, single-cell RNA sequencing, and spatial transcriptomics, we show that GAS infections induce inflammatory transcriptional programs in microglia and brain endothelial cells (BECs), accompanied by loss of blood-brain barrier (BBB) gene expression in female mice. Spatial transcriptomic analyses reveal that GAS-responsive microglia localize near infiltrating CD4+ T cells. Several microglial chemokines induced in mice are elevated in sera from affected patients. Deletion of GM-CSF in CD4⁺ T cells partially reduces microglial chemokine gene expression, without restoring BBB integrity. In contrast, IL-17A neutralization partially rescues BBB transcriptional changes, but not BBB dysfunction, and reduces microglial chemokine expression. Microglia-specific deletion of IL-17 receptor A partially restores BBB integrity after GAS infections. Our findings identify microglial IL-17A-IL17RA signaling as a potential mediator of BBB dysfunction and neuroinflammation after GAS infections.",
+      "journal": "Nature communications",
+      "authors": "Wayne CR, Akcan U, Faust TE, Durán-Laforet V, Jamoul D, Bremner L, et al.",
+      "publication_date": "2026 Aug 11",
+      "doi": "10.1038/s41467-026-76232-w",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/42717209/",
+      "topic": "跨领域顶刊启发",
+      "source_type": "顶刊扩展",
+      "source_note": "Cell/Nature/Science生命科学顶刊",
+      "special_interest": "",
+      "domain": "Cross-domain vascular biology",
+      "domain_reason": "Transferable mechanism appears with explicit vascular/endothelial context",
+      "translational_relevance": "Moderate",
+      "translational_reason": "Different disease with a highly transferable vascular/endothelial mechanism",
+      "priority": "A",
+      "priority_reason": "A: highly transferable cross-domain vascular mechanism"
+    }
+  ]
+}
