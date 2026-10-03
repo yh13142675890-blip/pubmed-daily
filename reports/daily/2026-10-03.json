@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-03",
+  "timezone": "Asia/Shanghai",
+  "count": 1,
+  "articles": [
+    {
+      "pmid": "42823485",
+      "title": "Effects of semaglutide on kidney disease in type 2 diabetes: a randomized placebo-controlled trial.",
+      "abstract": "The GLP-1 receptor agonist semaglutide preserves kidney function in people with type 2 diabetes and chronic kidney disease, but the underlying mechanisms are unclear. Here we report a 52-week randomized trial of subcutaneous semaglutide 1 mg once weekly versus placebo (n = 106 (n = 25 women, n = 81 men)) in participants with type 2 diabetes and chronic kidney disease. To identify kidney-specific mechanisms of action for semaglutide, we performed integrated multiparametric magnetic resonance imaging of the kidney and biopsy for histology (n = 33), alongside single-nucleus (n = 22) and spatial transcriptomics (n = 13) on paired samples with before- and after-treatment measurements. Coprimary magnetic resonance imaging outcomes (oxygenation by R2*, global perfusion and tissue inflammation by T1 mapping) were not significantly altered by semaglutide versus placebo treatment. Secondary outcomes revealed that semaglutide treatment, as compared to placebo, was associated with a significantly reduced renal artery resistive index and stabilization of the apparent diffusion coefficient, indicating prevention of fibrosis progression. Moreover, secondary transcriptomic outcomes revealed pronounced effects of semaglutide on glomerular endothelial cells, consistent with the results of spatial analyses indicating reduced numbers of immune cells in the proximity of these endothelial cells. The results from this trial indicate that mechanisms of kidney protection by semaglutide may include reduced vascular resistance, prevention of fibrosis and improved underlying molecular programs promoting endothelial cell health. ClinicalTrials.gov identifier: NCT04865770 .",
+      "journal": "Nature medicine",
+      "authors": "Tuttle KR, Bjornstad P, Smith C, Pruijm M, McCown PJ, Hodgin JB, et al.",
+      "publication_date": "2026 Oct 01",
+      "doi": "10.1038/s41591-026-04674-2",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/42823485/",
+      "topic": "跨领域顶刊启发",
+      "source_type": "顶刊扩展",
+      "source_note": "Cell/Nature/Science生命科学顶刊",
+      "special_interest": "",
+      "domain": "Cross-domain vascular biology",
+      "domain_reason": "Transferable mechanism appears with explicit vascular/endothelial context",
+      "translational_relevance": "Exploratory",
+      "translational_reason": "Cross-domain vascular mechanism with exploratory CCM relevance",
+      "priority": "C",
+      "priority_reason": "C: broad, exploratory, low-relevance, or unmatched article"
+    }
+  ]
+}
