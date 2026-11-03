@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-03",
+  "timezone": "Asia/Shanghai",
+  "count": 1,
+  "articles": [
+    {
+      "pmid": "42968142",
+      "title": "Targeting the non-enzymatic function of DPP4 via a nanobody inhibits cerebral cavernous malformation progression.",
+      "abstract": "Cerebral cavernous malformations (CCMs) cause hemorrhagic stroke and lack effective pharmacological therapies. Although multiple extracellular stimuli contribute to CCM progression, how these signals are integrated across the plasma membrane remains unclear. Through transcriptomic analysis, we identified dipeptidyl peptidase-4 (DPP4) as a hub gene that may link extracellular stimuli to endothelial dysfunction, with elevated expression in CCM lesions. DPP4 is a type Ⅱ transmembrane glycoprotein that possesses both enzymatic and non-enzymatic functions. DPP4 knockdown reverses endothelial dysfunction in vitro and suppresses CCM progression in vivo. Single-cell transcriptomic analysis further reveals that DPP4 promotes pro-angiogenic signaling and is associated with caveolin-1 (CAV1). Mechanistically, our data suggest that DPP4 promotes CCM pathogenesis via a non-enzymatic interaction with CAV1, largely independent of its canonical enzymatic activity. This interaction promotes CAV1 phosphorylation and downstream FAK signaling activation. To selectively target the predicted interface epitope on DPP4, we developed a structure-guided nanobody (DC499-mFc) and functionally disrupted the DPP4-CAV1 interaction. This nanobody-based strategy effectively attenuates CCM progression in vivo. Collectively, these findings suggest that DPP4 contributes to CCM progression and point to nanobody‑based disruption of the non‑enzymatic DPP4-CAV1 interaction as a potential therapeutic strategy for CCM.",
+      "journal": "Journal of nanobiotechnology",
+      "authors": "Men C, Xiong Z, Duan Q, Cheng J, Luo X, Yang B, et al.",
+      "publication_date": "2026 Aug 05",
+      "doi": "10.1186/s12951-026-04898-x",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/42968142/",
+      "topic": "CM基础机制",
+      "source_type": "近期补位",
+      "source_note": "",
+      "special_interest": "",
+      "domain": "CCM",
+      "domain_reason": "Strong CCM disease/gene expression in title or abstract",
+      "translational_relevance": "Direct",
+      "translational_reason": "The article has strong direct CCM evidence",
+      "priority": "A",
+      "priority_reason": "A: CCM core omics/mechanism"
+    }
+  ]
+}
