@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-24",
+  "timezone": "Asia/Shanghai",
+  "count": 1,
+  "articles": [
+    {
+      "pmid": "43069275",
+      "title": "Enterovirus A71 exploits peripheral circulating extracellular vesicles to facilitate blood-brain barrier permeability.",
+      "abstract": "Enterovirus A71 infection can cause hand, foot, and mouth disease to occasionally develop the severe neurological complications, but how peripheral Enterovirus A71 infection affects the blood-brain barrier remains incompletely understood. Here, we show that Enterovirus A71 infection of peripheral susceptible cells increases the release of extracellular vesicles and promotes the enrichment of microRNA-30 and microRNA-34 within these vesicles. The extracellular vesicle-associated microRNAs suppress Notch1 signaling in human brain microvascular endothelial cells, impair endothelial junctional integrity, and increase blood-brain barrier permeability. Activation of Notch1 signaling restores barrier integrity and reduces viral neuroinvasion in neonatal mice. Clinically, serum extracellular vesicle-associated microRNA-30 and microRNA-34 are elevated in patients with severe Enterovirus A71-associated hand, foot, and mouth disease. Together, our findings identify circulating extracellular vesicles as mediators linking peripheral Enterovirus A71 infection to blood-brain barrier dysfunction and suggest that the microRNA-30/34-Notch1 axis contributes to neurological disease progression during severe Enterovirus A71 infection.",
+      "journal": "Nature communications",
+      "authors": "Liang Y, Meng Y, Kong Y, Huang S, Zhou Z, Liu S, et al.",
+      "publication_date": "2026 Oct 24",
+      "doi": "10.1038/s41467-026-79119-y",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/43069275/",
+      "topic": "跨领域顶刊启发",
+      "source_type": "顶刊扩展",
+      "source_note": "Cell/Nature/Science生命科学顶刊",
+      "special_interest": "",
+      "domain": "Cross-domain vascular biology",
+      "domain_reason": "Transferable mechanism appears with explicit vascular/endothelial context",
+      "translational_relevance": "Moderate",
+      "translational_reason": "Different disease with a highly transferable vascular/endothelial mechanism",
+      "priority": "A",
+      "priority_reason": "A: highly transferable cross-domain vascular mechanism"
+    }
+  ]
+}
