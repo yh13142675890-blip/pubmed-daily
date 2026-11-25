@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-25",
+  "timezone": "Asia/Shanghai",
+  "count": 2,
+  "articles": [
+    {
+      "pmid": "43073309",
+      "title": "Holographic focused ultrasound enables multitarget EV and MSC delivery for neurovascular repair after ischemic stroke.",
+      "abstract": "Noninvasive multitarget delivery of size-diverse therapeutics, including extracellular vesicles (EVs) and mesenchymal stromal cells (MSCs), to peri-infarct zones is hindered by the blood-brain barrier (BBB) and heterogeneous infarct topographies. Here, we developed a hologram-assisted multitarget BBB opening (HaMBO) platform combining low-cost 3D-printed holograms with a single-element ultrasound transducer. Spatially tailored acoustic fields enabled localized BBB opening along infarct borders. In male mice with transient focal cerebral ischemia, a single two-minute HaMBO treatment safely enhanced the peri-infarct delivery of EVs and MSCs, reduced brain atrophy by ~56%, increased angiogenesis by ~2-fold and neural progenitor proliferation by ~4-fold, and improved long-term behavioral recovery. Spatial transcriptomic analysis associated HaMBO-assisted EV therapy with reduced macrophage infiltration and enhanced pro-angiogenic and neurogenic signaling. Human skull-based simulations further demonstrated HaMBO's clinical adaptability across diverse stroke scenarios. Thus, HaMBO provides a safe, low-cost, and customizable platform for noninvasive multitarget delivery in ischemic stroke and other neurological disorders.",
+      "journal": "Nature communications",
+      "authors": "Pan JJ, Li C, Yao X, Wei Y, Shen L, Piao X, et al.",
+      "publication_date": "2026 Oct 25",
+      "doi": "10.1038/s41467-026-78847-5",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/43073309/",
+      "topic": "跨领域顶刊启发",
+      "source_type": "顶刊扩展",
+      "source_note": "神经血管/脑血管顶刊扩展",
+      "special_interest": "",
+      "domain": "Cross-domain vascular biology",
+      "domain_reason": "Transferable mechanism appears with explicit vascular/endothelial context",
+      "translational_relevance": "Moderate",
+      "translational_reason": "Different disease with a highly transferable vascular/endothelial mechanism",
+      "priority": "A",
+      "priority_reason": "A: highly transferable cross-domain vascular mechanism"
+    },
+    {
+      "pmid": "43073258",
+      "title": "Gut epithelial aryl hydrocarbon receptor deficiency aggravates fungal dysbiosis-mediated neutrophilic allergic airway disease in mice.",
+      "abstract": "Fungal and bacterial dysbiosis are linked to asthma disease severity, yet how overgrowth of the commensal fungus Candida albicans contributes to disease progression is not fully understood. Here, we show that intestinal aryl hydrocarbon receptor (AhR) deficiency exacerbates house dust mite (HDM)-induced allergic airway disease (AAD) during oral Candida albicans colonization through enhanced IL-17 responsiveness and lung structural cell fucosylation. Intestinal AhR deficiency promotes exaggerated IL-17 responses that promotes neutrophil migration and accumulation in the lung and reshapes the gut microbiota, particularly reducing the abundance of Akkermansia muciniphila. Concurrently, increased fucosylation of lung structural cells enhances L-selectin glycan ligand biosynthesis, thereby promoting neutrophil adhesion and retention within inflamed lung tissue. These adherent neutrophils lead to mitochondrial dysfunction, oxidative stress, and tissue injury in epithelial and endothelial compartments. Administration of A. muciniphila or its derived outer membrane vesicles (OMVs), as well as genetic deletion of Fut2, reduces lung fucosylation, suppresses neutrophil adhesion and NET formation, and attenuates Candida albicans-exacerbated AAD. Together, these findings show that intestinal AhR signaling remotely regulates an IL-17- gut microbiota-fucosylation axis that promotes neutrophil adhesion, mitochondrial dysfunction of lung structure cell, and neutrophilic airway inflammation during Candida albicans-associated asthma.",
+      "journal": "Nature communications",
+      "authors": "Wang T, Lei C, Xu Z, Song X, Tuohongerbieke A, Jones T, et al.",
+      "publication_date": "2026 Oct 24",
+      "doi": "10.1038/s41467-026-78800-6",
+      "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/43073258/",
+      "topic": "跨领域顶刊启发",
+      "source_type": "顶刊扩展",
+      "source_note": "神经血管/脑血管顶刊扩展",
+      "special_interest": "",
+      "domain": "Cross-domain vascular biology",
+      "domain_reason": "Transferable mechanism appears with explicit vascular/endothelial context",
+      "translational_relevance": "Moderate",
+      "translational_reason": "Different disease with a highly transferable vascular/endothelial mechanism",
+      "priority": "A",
+      "priority_reason": "A: highly transferable cross-domain vascular mechanism"
+    }
+  ]
+}
